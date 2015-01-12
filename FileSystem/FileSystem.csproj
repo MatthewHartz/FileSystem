@@ -41,8 +41,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Buffer.cs" />
     <Compile Include="Driver.cs" />
     <Compile Include="FileSystem.cs" />
+    <Compile Include="FSfile.cs" />
     <Compile Include="Ldisk.cs" />
     <Compile Include="Memcache.cs" />
     <Compile Include="Program.cs" />

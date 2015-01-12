@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 namespace FileSystem
 {
     /// <summary>
-    /// The Driver class is what runs a file and actively calls the File System class line by line.
+    /// This is the data structure for a file.
     /// </summary>
-    class Driver
+    class FSfile
     {
     }
 }
