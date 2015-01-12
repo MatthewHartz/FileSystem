@@ -47,7 +47,7 @@
     <Compile Include="FSfile.cs" />
     <Compile Include="Ldisk.cs" />
     <Compile Include="Memcache.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="OpenFileTable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
