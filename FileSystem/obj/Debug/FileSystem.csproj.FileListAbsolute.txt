@@ -5,3 +5,6 @@ C:\Users\Matthew\Documents\GitHub\FileSystem\FileSystem\bin\Debug\FileSystem.pdb
 C:\Users\Matthew\Documents\GitHub\FileSystem\FileSystem\obj\Debug\FileSystem.csprojResolveAssemblyReference.cache
 C:\Users\Matthew\Documents\GitHub\FileSystem\FileSystem\obj\Debug\FileSystem.exe
 C:\Users\Matthew\Documents\GitHub\FileSystem\FileSystem\obj\Debug\FileSystem.pdb
+C:\Users\mhartz\Documents\GitHub\FileSystem\FileSystem\bin\Debug\FileSystem.exe.config
+C:\Users\mhartz\Documents\GitHub\FileSystem\FileSystem\obj\Debug\FileSystem.exe
+C:\Users\mhartz\Documents\GitHub\FileSystem\FileSystem\obj\Debug\FileSystem.pdb
