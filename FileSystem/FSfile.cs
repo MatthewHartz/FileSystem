@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace FileSystem
 {
-    class Program
+    /// <summary>
+    /// This is the data structure for a file.
+    /// </summary>
+    class FSfile
     {
-        static void Main(string[] args)
-        {
-        }
     }
 }
