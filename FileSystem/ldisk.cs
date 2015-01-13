@@ -22,5 +22,15 @@ namespace FileSystem
         {
             _blocks = new Block[64];
         }
+
+        public Block ReadBlock(int index)
+        {
+            return _blocks[index];
+        }
+
+        public void SetBlock(Block block, int index)
+        {
+            _blocks[index] = block;
+        }
     }
 }

@@ -11,5 +11,11 @@ namespace FileSystem
     /// </summary>
     class Memcache
     {
+        private Bitmap bitmap;
+
+        public Memcache()
+        {
+            bitmap = new Bitmap();
+        }
     }
 }
