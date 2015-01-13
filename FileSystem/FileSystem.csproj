@@ -45,6 +45,7 @@
     <Compile Include="Block.cs" />
     <Compile Include="Buffer.cs" />
     <Compile Include="Driver.cs" />
+    <Compile Include="FileDescriptor.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="FSfile.cs" />
     <Compile Include="Ldisk.cs" />

@@ -12,10 +12,12 @@ namespace FileSystem
     class Memcache
     {
         private Bitmap bitmap;
+        private FileDescriptor[] fileDescriptors;
 
         public Memcache()
         {
             bitmap = new Bitmap();
+            fileDescriptors = new FileDescriptor[24];
         }
     }
 }

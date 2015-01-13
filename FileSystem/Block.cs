@@ -18,5 +18,10 @@ namespace FileSystem
         {
             Data = new byte[64];
         }
+
+        public Block(byte[] data)
+        {
+            Data = data;
+        }
     }
 }

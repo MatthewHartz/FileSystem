@@ -16,7 +16,12 @@ namespace FileSystem
 
         public Bitmap()
         {
-            _map = 0x8000000000000007;
+            _map = 0x0000000000000000;
+        }
+
+        public Bitmap(ulong bitStream)
+        {
+            _map = bitStream;
         }
 
         /// <summary>
