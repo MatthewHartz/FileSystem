@@ -11,5 +11,16 @@ namespace FileSystem
     /// </summary>
     class Ldisk
     {
+        private Block[] _blocks;
+
+        public Ldisk(Block[] blocks)
+        {
+            _blocks = blocks;
+        }
+
+        public Ldisk()
+        {
+            _blocks = new Block[64];
+        }
     }
 }
