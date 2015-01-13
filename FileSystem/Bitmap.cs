@@ -11,5 +11,6 @@ namespace FileSystem
     /// </summary>
     class Bitmap
     {
+
     }
 }
