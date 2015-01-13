@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +13,9 @@ namespace FileSystem
     /// </summary>
     class FileSystem
     {
+        private Ldisk ldisk;
+        private OpenFileTable oft;
+        private Memcache memcache;
         private static FileSystem instance;
 
         private FileSystem() {}
@@ -22,19 +26,19 @@ namespace FileSystem
         }
 
         /// <summary>
-        /// Creates the specified name.
+        /// Creates the specified file.
         /// </summary>
         /// <param name="name">The name of the file.</param>
         public void Create(string name) {}
 
         /// <summary>
-        /// Destroys the specified name.
+        /// Destroys the specified file.
         /// </summary>
         /// <param name="name">The name.</param>
         public void Destroy(string name) {}
 
         /// <summary>
-        /// Opens the specified name.
+        /// Opens the specified file.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <returns></returns>
@@ -49,7 +53,7 @@ namespace FileSystem
         public void Close(int file) { }
 
         /// <summary>
-        /// Reads the specified index.
+        /// Reads count numbers from the specified file at location index.
         /// </summary>
         /// <param name="index">The index.</param>
         /// <param name="buf">The buf.</param>
@@ -61,7 +65,7 @@ namespace FileSystem
         }
 
         /// <summary>
-        /// Writes the specified index.
+        /// Writes the character count times to the specified index.
         /// </summary>
         /// <param name="index">The index.</param>
         /// <param name="character">The character.</param>
@@ -72,29 +76,44 @@ namespace FileSystem
             return 0;
         }
         /// <summary>
-        /// Lseeks the specified index.
+        /// Seeks to the specified position in the file.
         /// </summary>
         /// <param name="index">The index.</param>
         /// <param name="pos">The position.</param>
         public void Lseek(int index, int pos) {}
 
         /// <summary>
-        /// Directories this instance.
+        /// Prints out the list of directories
         /// </summary>
         /// <returns></returns>
-        public List<FSfile> Directory()
+        public List<FSfile> Directories()
         {
             return new List<FSfile>();
         }
 
         /// <summary>
-        /// Initializes the specified filename.
+        /// If filename is null, create a new file system. If the specified
+        /// file exists, initialize the file system using that file.
         /// </summary>
         /// <param name="filename">The filename.</param>
-        public void Init(string filename) {}
+        public void Init(string filename)
+        {
+            if (String.IsNullOrEmpty(filename))
+            {
+                ldisk = new Ldisk();
+                oft = new OpenFileTable();
+                memcache = new Memcache();
+
+                Console.WriteLine("disk initialized");
+            }
+            else
+            {
+                Console.WriteLine("disk restored");
+            }
+        }
 
         /// <summary>
-        /// Saves the specified filename.
+        /// Saves the current state of the file system to the file.
         /// </summary>
         /// <param name="filename">The filename.</param>
         public void Save(string filename) {}

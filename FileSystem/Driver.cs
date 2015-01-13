@@ -70,7 +70,7 @@ namespace FileSystem
                     case "sk":
                         break;
                     case "dr":
-                        var files = fileSystem.Directory();
+                        var files = fileSystem.Directories();
 
                         foreach (var file in files)
                         {
@@ -78,6 +78,18 @@ namespace FileSystem
                         }
                         break;
                     case "in":
+                        if (tokens.Count() == 2)
+                        {
+                            fileSystem.Init(tokens[1]);
+                        }
+                        else if (tokens.Count() == 1)
+                        {
+                            fileSystem.Init(null);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid init call: in <optional filename>");
+                        }
                         break;
                     case "sv":
                         break;
