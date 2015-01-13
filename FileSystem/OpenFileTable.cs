@@ -13,18 +13,5 @@ namespace FileSystem
     /// </summary>
     class OpenFileTable
     {
-        private OftFile[] files;
-
-        public OpenFileTable()
-        {
-            files = new OftFile[3];
-        }
-    }
-
-    class OftFile
-    {
-        private Block block;
-        private int position;
-        private int index;
     }
 }
