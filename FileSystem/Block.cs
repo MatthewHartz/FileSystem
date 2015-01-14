@@ -12,16 +12,21 @@ namespace FileSystem
     /// </summary>
     class Block
     {
-        private byte[] Data { get; set; }
+        private byte[] _data { get; set; }
 
         public Block()
         {
-            Data = new byte[64];
+            _data = new byte[64];
+
+            //foreach (var d in _data)
+            //{
+            //    d = 0;
+            //}
         }
 
         public Block(byte[] data)
         {
-            Data = data;
+            _data = data;
         }
     }
 }

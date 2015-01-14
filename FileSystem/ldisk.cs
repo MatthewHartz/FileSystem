@@ -21,6 +21,11 @@ namespace FileSystem
         public Ldisk()
         {
             _blocks = new Block[64];
+
+            for (int i = 0; i < _blocks.Length; i++)
+            {
+                SetBlock(new Block(), i);
+            }
         }
 
         public Block ReadBlock(int index)

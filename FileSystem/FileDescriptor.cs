@@ -11,13 +11,19 @@ namespace FileSystem
     /// </summary>
     class FileDescriptor
     {
-        private int length;
-        private int[] map;
+        private int _length;
+        private int[] _map;
 
         public FileDescriptor()
         {
-            length = 0;
-            map = new int[3];
+            _length = 0;
+            _map = new int[3];
+        }
+
+        public FileDescriptor(int length, int[] map)
+        {
+            _length = length;
+            _map = map;
         }
     }
 }
