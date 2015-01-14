@@ -16,7 +16,7 @@ namespace FileSystem
 
         public Bitmap()
         {
-            _map = 0x0000000000000000;
+            _map = 0x000000000000007F; // First 7 blocks are reserved for bitmap and file descriptors blocks
         }
 
         public Bitmap(ulong bitStream)
@@ -29,9 +29,9 @@ namespace FileSystem
         /// </summary>
         /// <param name="index">The index.</param>
         /// <returns></returns>
-        public ulong GetBit(int index)
+        public int GetBit(int index)
         {
-            return (_map & (_bitmask << index));
+            return (int) (_map & (_bitmask << index));
         }
 
         /// <summary>
@@ -39,7 +39,17 @@ namespace FileSystem
         /// </summary>
         /// <param name="bit">The bit.</param>
         /// <param name="index">The index.</param>
-        public void SetBit(int bit, int index)
+        public void SetBit(int index)
+        {
+            _map |= (_bitmask << index);
+        }
+
+        /// <summary>
+        /// Clears the bit indicated by index to the value of bit.
+        /// </summary>
+        /// <param name="bit">The bit.</param>
+        /// <param name="index">The index.</param>
+        public void ClearBit(int index)
         {
             _map &= ~(_bitmask << index);
         }

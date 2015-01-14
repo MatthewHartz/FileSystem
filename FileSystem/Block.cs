@@ -17,11 +17,6 @@ namespace FileSystem
         public Block()
         {
             _data = new byte[64];
-
-            //foreach (var d in _data)
-            //{
-            //    d = 0;
-            //}
         }
 
         public Block(byte[] data)

@@ -21,7 +21,19 @@ namespace FileSystem
             _fileDescriptors = new FileDescriptor[24];
 
             // initialize directory descriptor
-            _fileDescriptors[0] = new FileDescriptor();
+            var freeBlock = GetOpenBlock();
+            _fileDescriptors[0] = new FileDescriptor(0, new []
+            {
+                freeBlock, -1, -1
+            });
+
+            // Set the bit for the first directory block
+            _bitmap.SetBit(7);
+        }
+
+        public FileDescriptor GetDirectoryDescriptor()
+        {
+            return _fileDescriptors[0];
         }
 
         public FileDescriptor GetDescriptor(int index)
@@ -34,11 +46,32 @@ namespace FileSystem
             _fileDescriptors[index] = null;
         }
 
+        /// <summary>
+        /// Gets the first open file descriptor.  If all file descriptors are full, return -1.
+        /// </summary>
+        /// <returns></returns>
         public int GetOpenFileDescriptor()
         {
             for (int i = 0; i < _fileDescriptors.Length; i++)
             {
-                if (_fileDescriptors[i] != null)
+                if (_fileDescriptors[i] == null)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Gets the first open block from the bitmap.  If bitmap is full, return -1.
+        /// </summary>
+        /// <returns></returns>
+        public int GetOpenBlock()
+        {
+            for (var i = 0; i < 64; i++)
+            {
+                if (_bitmap.GetBit(i) == 0)
                 {
                     return i;
                 }

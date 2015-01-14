@@ -13,23 +13,29 @@ namespace FileSystem
     /// </summary>
     class FileSystem
     {
-        private Ldisk ldisk;
-        private OpenFileTable oft;
-        private Memcache memcache;
-        private static FileSystem instance;
+        private Ldisk _ldisk;
+        private OpenFileTable _oft;
+        private Memcache _memcache;
+        private static FileSystem _instance;
 
         private FileSystem() {}
 
         public static FileSystem Instance
         {
-            get { return instance ?? (instance = new FileSystem()); }
+            get { return _instance ?? (_instance = new FileSystem()); }
         }
 
         /// <summary>
         /// Creates the specified file.
         /// </summary>
         /// <param name="name">The name of the file.</param>
-        public void Create(string name) {}
+        public void Create(string name)
+        {
+            // Open file descriptor
+            var blah = _memcache.GetOpenBlock();
+
+
+        }
 
         /// <summary>
         /// Destroys the specified file.
@@ -100,9 +106,11 @@ namespace FileSystem
         {
             if (String.IsNullOrEmpty(filename))
             {
-                ldisk = new Ldisk();
-                oft = new OpenFileTable();
-                memcache = new Memcache();
+                _ldisk = new Ldisk();
+                _oft = new OpenFileTable();
+                _memcache = new Memcache();
+
+                var fd = _memcache.GetOpenFileDescriptor();
 
                 Console.WriteLine("disk initialized");
             }
@@ -117,5 +125,12 @@ namespace FileSystem
         /// </summary>
         /// <param name="filename">The filename.</param>
         public void Save(string filename) {}
+
+        private int GetDirectoryEntry()
+        {
+            //var block = _ldisk.ReadBlock();
+
+            return -1;
+        }
     }
 }

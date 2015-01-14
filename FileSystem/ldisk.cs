@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace FileSystem
 {
     /// <summary>
-    /// This contains the 57 blocks of data for all the files in the file system.
+    /// This contains the 64 blocks of data for all the files in the file system.
     /// </summary>
     class Ldisk
     {
@@ -22,7 +22,7 @@ namespace FileSystem
         {
             _blocks = new Block[64];
 
-            for (int i = 0; i < _blocks.Length; i++)
+            for (var i = 0; i < _blocks.Length; i++)
             {
                 SetBlock(new Block(), i);
             }
