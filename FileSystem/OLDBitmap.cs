@@ -1,27 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FileSystem
 {
     /// <summary>
     /// This class represents the bitmap for all the open blocks
     /// </summary>
-    class Bitmap
+    class OLDBitmap
     {
-        private ulong _map; // ulong in C# is 64 bits
-        private ulong _bitmask = 0x0000000000000001;
+        private Block _map;
+        private ulong _bitmask;
 
-        public Bitmap()
+        public OLDBitmap(Block bitStream)
         {
-            _map = 0x000000000000007F; // First 7 blocks are reserved for bitmap and file descriptors blocks
-        }
-
-        public Bitmap(Block bitStream)
-        {
-            _map = BitConverter.ToUInt64((byte[])(Array)bitStream.GetBlock(), 0);
+            _map = bitStream;
+            _bitmask = 0x0000000000000001;
         }
 
         /// <summary>
@@ -31,7 +23,9 @@ namespace FileSystem
         /// <returns></returns>
         public int GetBit(int index)
         {
-            return (int) (_map & (_bitmask << index));
+            var map = BitConverter.ToUInt64((byte[])(Array)_map.GetBlock(), 0);
+
+            return (map & (_bitmask << index)) == 0 ? 0 : 1;
         }
 
         /// <summary>
@@ -41,7 +35,10 @@ namespace FileSystem
         /// <param name="index">The index.</param>
         public void SetBit(int index)
         {
-            _map |= (_bitmask << index);
+            var map = BitConverter.ToUInt64((byte[])(Array)_map.GetBlock(), 0);
+            map |= (_bitmask << index);
+
+            _map.SetBlock((sbyte[]) (Array)BitConverter.GetBytes(map));
         }
 
         /// <summary>
@@ -51,7 +48,10 @@ namespace FileSystem
         /// <param name="index">The index.</param>
         public void ClearBit(int index)
         {
-            _map &= ~(_bitmask << index);
+            var map = BitConverter.ToUInt64((byte[])(Array)_map.GetBlock(), 0);
+            map &= ~(_bitmask << index);
+
+            _map.SetBlock((sbyte[])(Array)BitConverter.GetBytes(map));
         }
     }
 }

@@ -12,16 +12,30 @@ namespace FileSystem
     /// </summary>
     class Block
     {
-        private byte[] _data { get; set; }
+        private sbyte[] _data;
 
         public Block()
         {
-            _data = new byte[64];
+            _data = new sbyte[64];
+            for (int i = 0; i < _data.Length; i++)
+            {
+                _data[i] = -0x01;
+            }
         }
 
-        public Block(byte[] data)
+        public Block(sbyte[] data)
         {
             _data = data;
+        }
+
+        public sbyte[] GetBlock()
+        {
+            return _data;    
+        }
+
+        public void SetBlock(sbyte[] block)
+        {
+            _data = block;
         }
     }
 }

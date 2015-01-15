@@ -25,5 +25,20 @@ namespace FileSystem
             _length = length;
             _map = map;
         }
+
+        public static FileDescriptor[] InitializeDescriptors(Block[] blocks)
+        {
+            var filedescriptors = new FileDescriptor[24];
+
+            foreach (var block in blocks)
+            {
+                for (int i = 0; i < 64; i++)
+                {
+                    
+                }
+            }
+
+            return new FileDescriptor[24];
+        }
     }
 }

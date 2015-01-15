@@ -22,7 +22,13 @@ namespace FileSystem
         {
             _blocks = new Block[64];
 
-            for (var i = 0; i < _blocks.Length; i++)
+            // set the bitmap to //0x0000000000007F
+            var block = new sbyte[64];
+            block[0] = 0x7F;
+            SetBlock(new Block(block), 0);
+
+            // sets the rest of the ldisk to 0
+            for (var i = 1; i < _blocks.Length; i++)
             {
                 SetBlock(new Block(), i);
             }

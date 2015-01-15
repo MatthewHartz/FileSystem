@@ -31,9 +31,8 @@ namespace FileSystem
         /// <param name="name">The name of the file.</param>
         public void Create(string name)
         {
-            // Open file descriptor
+            //Open file descriptor
             var blah = _memcache.GetOpenBlock();
-
 
         }
 
@@ -107,10 +106,22 @@ namespace FileSystem
             if (String.IsNullOrEmpty(filename))
             {
                 _ldisk = new Ldisk();
-                _oft = new OpenFileTable();
-                _memcache = new Memcache();
 
-                var fd = _memcache.GetOpenFileDescriptor();
+                var blocks = new[]
+                {
+                    _ldisk.ReadBlock(0),
+                    _ldisk.ReadBlock(1),
+                    _ldisk.ReadBlock(2),
+                    _ldisk.ReadBlock(3),
+                    _ldisk.ReadBlock(4),
+                    _ldisk.ReadBlock(5),
+                    _ldisk.ReadBlock(6),
+                };
+                _oft = new OpenFileTable();
+
+                _memcache = new Memcache(blocks);
+
+                //var fd = _memcache.GetOpenFileDescriptor();
 
                 Console.WriteLine("disk initialized");
             }

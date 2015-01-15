@@ -10,15 +10,21 @@ namespace FileSystem
     /// This class contains the bitmap and the file descriptors.
     /// The first index of _fileDescriptors is reserved for the file directory.
     /// </summary>
+    
     class Memcache
     {
         private Bitmap _bitmap;
         private FileDescriptor[] _fileDescriptors;
 
-        public Memcache()
+        public Memcache(Block[] ldisk)
         {
-            _bitmap = new Bitmap();
-            _fileDescriptors = new FileDescriptor[24];
+            _bitmap = new Bitmap(ldisk[0]);
+
+            // initialze the file descriptors
+            _fileDescriptors = FileDescriptor.InitializeDescriptors(new []
+            {
+                ldisk[1], ldisk[2], ldisk[3], ldisk[4], ldisk[5], ldisk[6]
+            });
 
             // initialize directory descriptor
             var freeBlock = GetOpenBlock();
