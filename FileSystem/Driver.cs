@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,7 +28,7 @@ namespace FileSystem
                 switch (tokens[0].ToLower())
                 {
                     case "cr":
-                        fileSystem.Create(tokens[1]);
+                        fileSystem.Create(tokens[1] + "\0");
                         break;
                     case "de":
                         fileSystem.Destroy(tokens[1]);
@@ -68,6 +69,15 @@ namespace FileSystem
                         }
                         break;
                     case "sk":
+                        try
+                        {
+                            fileSystem.Lseek(Convert.ToInt32(tokens[1]), Convert.ToInt32(tokens[2]));
+                            Console.WriteLine("Position is " + Convert.ToInt32(tokens[2]));
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Error seeking");
+                        }
                         break;
                     case "dr":
                         var files = fileSystem.Directories();

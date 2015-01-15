@@ -25,27 +25,21 @@ namespace FileSystem
             {
                 ldisk[1], ldisk[2], ldisk[3], ldisk[4], ldisk[5], ldisk[6]
             });
-
-            // initialize directory descriptor
-            var map = GetDescriptorMap(0);
-
-            // If directory's map has not been set, set it. If it has, don't worry
-            // because it should have been stored in bitmap.
-            if (map.Count == 0)
-            {
-                var freeBlock = GetOpenBlock();
-                _fileDescriptors[0] = new FileDescriptor(0, new[]
-                {
-                    freeBlock, -1, -1
-                });
-
-                _bitmap.SetBit(freeBlock);
-            }
         }
 
-        public void CloseDescriptor(int index)
+        public void ReleaseDescriptor(int index)
         {
             _fileDescriptors[index] = null;
+        }
+
+        public FileDescriptor GetFileDescriptorByIndex(int index)
+        {
+            return _fileDescriptors[index];
+        }
+
+        public void SetFileDescriptorByIndex(int index, FileDescriptor fd)
+        {
+            _fileDescriptors[index] = fd;
         }
 
         /// <summary>

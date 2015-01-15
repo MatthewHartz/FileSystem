@@ -10,7 +10,7 @@ namespace FileSystem
     /// This class represents the blocks of memory inside the ldisk.
     /// Each block is 64 bytes
     /// </summary>
-    class Block
+    public class Block
     {
         public sbyte[] data { get; set; }
 

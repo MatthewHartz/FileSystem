@@ -9,15 +9,14 @@ namespace FileSystem
     /// <summary>
     /// This is the data structure for a file.
     /// </summary>
-    class FSfile
+    public static class FSfile
     {
-        private char[] name;
-        private int index;
-        private Ldisk _ldisk = Ldisk.Instance;
+        private static Ldisk _ldisk = Ldisk.Instance;
 
-        public static bool OpenFileExists(int block)
+        /*
+        public static bool OpenFileExists(Block block)
         {
-            /*var index = 0;
+            var index = 0;
             var b = block.data;
             while (index < 64)
             {
@@ -32,22 +31,20 @@ namespace FileSystem
 
                 if (value == -1)
                 {
-                    /*
+                    
                     return new FSfile(
                     {
                         name = new char[4] { 'a', 'b', 'c', 'd'},
                         index = 4
                     };
-                     *
+                     
                 }
-            }*/
+            }
 
             return false;
         }
+         */
 
-        public static void SetFile(string s, int descriptor)
-        {
-            throw new NotImplementedException();
-        }
+        
     }
 }
