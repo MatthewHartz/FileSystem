@@ -31,8 +31,62 @@ namespace FileSystem
         /// <param name="name">The name of the file.</param>
         public void Create(string name)
         {
-            //Open file descriptor
-            var blah = _memcache.GetOpenBlock();
+            try
+            {
+                // Find open file descriptor
+                var descriptor = _memcache.GetOpenFileDescriptor();
+
+                if (descriptor == -1)
+                {
+                    Console.WriteLine("No empty file descriptors");
+                    return;
+                }
+                    
+
+                // get the list of blocks used by directory descriptor
+                var blocks = _memcache.GetDescriptorMap(0);
+
+                foreach (var block in blocks)
+                {
+                    var data = _ldisk.ReadBlock(block);
+
+                    if (FSfile.OpenFileExists(block))
+                    {
+                        FSfile.SetFile(name, descriptor);
+                        _memcache.SetDescriptorLength(descriptor, 0);
+                    }
+                    //if
+                }
+
+                // If a open file was not found and a new block can be added, add it.
+                if (blocks.Count != 3)
+                {
+                    var newblock = _memcache.GetOpenBlock();
+                    _memcache.SetBlockToDescriptor(descriptor, newblock);
+                    var data = _ldisk.ReadBlock(newblock);
+                    //file = FSfile.GetOpenFile(data);
+                }
+
+                // Have both descriptor and file, fill both entries
+                /*
+                if (file != null)
+                {
+                    var length = _memcache.GetDescriptorLength(0);
+                    _memcache.SetDescriptorLength(0, length + 8);
+                    Console.WriteLine("{0} created", name);
+                }
+                else
+                {
+                    Console.WriteLine("No empty directory files");
+                }
+                 */
+                
+                
+            }
+            catch (NullReferenceException e)
+            {
+                Console.WriteLine("Disk not initialized");
+            }
 
         }
 
@@ -49,13 +103,33 @@ namespace FileSystem
         /// <returns></returns>
         public int Open(string name)
         {
+            /*
+             * search directory to find index of file descriptor (i)
+             * allocate a free OFT entry (reuse deleted entries)
+             * fill in current position (0) and file descriptor index (i)
+             * read block 0 of file into the r/w buffer (read-ahead)
+             * return OFT index (j) (or return error)
+             * consider adding a file length field (to simplify checking)
+             */
+
             return 0;
         }
+
         /// <summary>
         /// Closes the specified file.
         /// </summary>
         /// <param name="file">The file.</param>
-        public void Close(int file) { }
+        public void Close(int file)
+        {
+            /*
+             * write buffer to disk
+             * update file length in descriptor
+             * free OFT entry
+             * return status
+             */
+
+
+        }
 
         /// <summary>
         /// Reads count numbers from the specified file at location index.
@@ -117,11 +191,9 @@ namespace FileSystem
                     _ldisk.ReadBlock(5),
                     _ldisk.ReadBlock(6),
                 };
-                _oft = new OpenFileTable();
-
+                
                 _memcache = new Memcache(blocks);
-
-                //var fd = _memcache.GetOpenFileDescriptor();
+                _oft = new OpenFileTable();
 
                 Console.WriteLine("disk initialized");
             }

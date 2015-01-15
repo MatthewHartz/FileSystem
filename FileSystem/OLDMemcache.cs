@@ -12,6 +12,7 @@ namespace FileSystem
     /// </summary>
     class OLDMemcache
     {
+        /*
         private OLDBitmap _bitmap;
         private OLDFileDescriptorData _fileDescriptors;
 
@@ -61,5 +62,6 @@ namespace FileSystem
 
             return -1;
         }
+         */
     }
 }

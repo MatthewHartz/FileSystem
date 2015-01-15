@@ -12,6 +12,12 @@ namespace FileSystem
     class Ldisk
     {
         private Block[] _blocks;
+        private static Ldisk _instance;
+
+        public static Ldisk Instance
+        {
+            get { return _instance ?? (_instance = new Ldisk()); }
+        }
 
         public Ldisk(Block[] blocks)
         {

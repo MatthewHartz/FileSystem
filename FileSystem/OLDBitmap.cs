@@ -7,6 +7,7 @@ namespace FileSystem
     /// </summary>
     class OLDBitmap
     {
+        /*
         private Block _map;
         private ulong _bitmask;
 
@@ -53,5 +54,6 @@ namespace FileSystem
 
             _map.SetBlock((sbyte[])(Array)BitConverter.GetBytes(map));
         }
+         */
     }
 }

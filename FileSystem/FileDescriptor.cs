@@ -11,34 +11,19 @@ namespace FileSystem
     /// </summary>
     class FileDescriptor
     {
-        private int _length;
-        private int[] _map;
+        public int length { get; set; }
+        public int[] map { get; set; }
 
         public FileDescriptor()
         {
-            _length = 0;
-            _map = new int[3];
+            length = 0;
+            map = new int[3];
         }
 
-        public FileDescriptor(int length, int[] map)
+        public FileDescriptor(int l, int[] m)
         {
-            _length = length;
-            _map = map;
-        }
-
-        public static FileDescriptor[] InitializeDescriptors(Block[] blocks)
-        {
-            var filedescriptors = new FileDescriptor[24];
-
-            foreach (var block in blocks)
-            {
-                for (int i = 0; i < 64; i++)
-                {
-                    
-                }
-            }
-
-            return new FileDescriptor[24];
+            length = l;
+            map = m;
         }
     }
 }

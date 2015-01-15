@@ -17,7 +17,7 @@ namespace FileSystem
 
         public OpenFileTable()
         {
-            files = new OftFile[3];
+            files = new OftFile[4];
         }
     }
 

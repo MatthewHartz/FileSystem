@@ -21,7 +21,7 @@ namespace FileSystem
 
         public Bitmap(Block bitStream)
         {
-            _map = BitConverter.ToUInt64((byte[])(Array)bitStream.GetBlock(), 0);
+            _map = BitConverter.ToUInt64((byte[])(Array)bitStream.data, 0);
         }
 
         /// <summary>

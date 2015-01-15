@@ -10,7 +10,7 @@ namespace FileSystem
     /// This class is for the file descriptors in the project
     /// </summary>
     class OLDFileDescriptorData
-    {
+    {/*
         private Block[] _fileDescriptors;
 
         public OLDFileDescriptorData(Block[] data)
@@ -117,5 +117,6 @@ namespace FileSystem
 
             _fileDescriptors[blockNumber].SetBlock(block);
         }
+      */
     }
 }
