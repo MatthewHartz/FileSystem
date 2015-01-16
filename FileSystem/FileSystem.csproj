@@ -45,7 +45,6 @@
     <Compile Include="OLDBitmap.cs" />
     <Compile Include="Bitmap.cs" />
     <Compile Include="Block.cs" />
-    <Compile Include="Buffer.cs" />
     <Compile Include="Driver.cs" />
     <Compile Include="OLDFileDescriptorData.cs" />
     <Compile Include="FileSystem.cs" />

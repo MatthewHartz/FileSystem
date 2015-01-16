@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -13,7 +14,10 @@ namespace FileSystem
     /// </summary>
     class FileSystem
     {
+        // const variables
         private const int DirectoryFileDescriptor = 0;
+        private const int MaxBlockLength = 64;
+
         private Ldisk _ldisk;
         private OpenFileTable _oft;
         private Memcache _memcache;
@@ -32,67 +36,67 @@ namespace FileSystem
         /// <param name="name">The name of the file.</param>
         public void Create(string name)
         {
-            try
-            {
-                if (name.Length > 4)
-                {
-                    Console.WriteLine("cannot accept names longer than 3 characters");
-                    return;
-                }
-
-                // Find open file descriptor
-                var descriptor = _memcache.GetOpenFileDescriptor();
-
-                if (descriptor == -1)
-                {
-                    Console.WriteLine("No empty file descriptors");
-                    return;
-                }
-                    
-
-                // get the list of blocks used by directory descriptor
-                var blocks = _memcache.GetDescriptorMap(0);
-
-                foreach (var block in blocks)
-                {
-                    /*if (FSfile.SetFile(block, name, descriptor))
-                    {
-                        _memcache.SetDescriptorLength(descriptor, 0);
-                        return;
-                    }*/
-                }
-
-                // If a open file was not found and a new block can be added, add it.
-                if (blocks.Count != 3)
-                {
-                    var newblock = _memcache.GetOpenBlock();
-                    _memcache.SetBlockToDescriptor(descriptor, newblock);
-                    
-                    //FSfile.SetFile(newblock, name, descriptor);
-                    _memcache.SetDescriptorLength(descriptor, 0);
-                }
-
-                // Have both descriptor and file, fill both entries
-                /*
-                if (file != null)
-                {
-                    var length = _memcache.GetDescriptorLength(0);
-                    _memcache.SetDescriptorLength(0, length + 8);
-                    Console.WriteLine("{0} created", name);
-                }
-                else
-                {
-                    Console.WriteLine("No empty directory files");
-                }
-                 */
-                
-                
-            }
-            catch (NullReferenceException e)
+            // If disk and cache have not been initialized error
+            if ((_ldisk == null) || (_memcache == null))
             {
                 Console.WriteLine("Disk not initialized");
+                return;
             }
 
+            // Error if length of file is greater than 4 with null included
+            if (name.Length > 4)
+            {
+                Console.WriteLine("cannot accept names longer than 3 characters");
+                return;
+            }
+
+            // Find open file descriptor
+            var descriptor = _memcache.GetOpenFileDescriptor();
+
+            if (descriptor == -1)
+            {
+                Console.WriteLine("No empty file descriptors");
+                return;
+            }
+                    
+
+            // get the list of blocks used by directory descriptor
+            var blocks = _memcache.GetDescriptorMap(0);
+
+            foreach (var block in blocks)
+            {
+                /*if (FSfile.SetFile(block, name, descriptor))
+                {
+                    _memcache.SetDescriptorLength(descriptor, 0);
+                    return;
+                }*/
+            }
+
+            // If a open file was not found and a new block can be added, add it.
+            if (blocks.Count != 3)
+            {
+                var newblock = _memcache.GetOpenBlock();
+                _memcache.SetBlockToDescriptor(descriptor, newblock);
+                    
+                //FSfile.SetFile(newblock, name, descriptor);
+                _memcache.SetDescriptorLength(descriptor, 0);
+            }
+
+            // Have both descriptor and file, fill both entries
+            /*
+            if (file != null)
+            {
+                var length = _memcache.GetDescriptorLength(0);
+                _memcache.SetDescriptorLength(0, length + 8);
+                Console.WriteLine("{0} created", name);
+            }
+            else
+            {
+                Console.WriteLine("No empty directory files");
+            }
+                */
+            Console.WriteLine(name + " created");
+                
         }
 
         /// <summary>
@@ -139,13 +143,63 @@ namespace FileSystem
         /// <summary>
         /// Reads count numbers from the specified file at location index.
         /// </summary>
-        /// <param name="index">The index.</param>
-        /// <param name="buf">The buf.</param>
-        /// <param name="count">The count.</param>
+        /// <param name="index">The index in the OFT.</param>
+        /// <param name="count">The count of bytes to return back.</param>
         /// <returns></returns>
-        public int Read(int index, Buffer buf, int count)
+        public sbyte[] Read(int index, int count)
         {
-            return 0;
+            // Get OftFile from OFT
+            var oftFile = _oft.GetFile(index);
+
+            // Get Descriptor
+            var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
+
+            // Save current position
+            var pos = oftFile.position;
+
+            // Save current block index
+            var blockIndex = oftFile.position/64;
+
+            // Save total blocks initialized
+            var maxBlocks = fd.map.Select(x => x).Count(y => y != -1);
+
+            // Initialize byte array
+            var bytes = new List<sbyte>();
+
+            // loop through block until desired count or end of file reached or end of buffer is reached.
+            for (var i = 0; i < count; i++)
+            {
+                // if exhausted the whole block
+                if ((pos != 0) && (pos%MaxBlockLength == 0))
+                {
+                    // if exhausted whole file, return bytes
+                    if (pos/MaxBlockLength == maxBlocks)
+                    {
+                        return bytes.ToArray();
+                    }
+                    // else write block back and read the next block into 
+                    // the oft/its file and reposition
+                    else
+                    {
+                        // write buffer to disk
+                        _ldisk.SetBlock(oftFile.block, fd.map[blockIndex]);
+
+                        blockIndex++;
+
+                        // read the new block
+                        oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
+                        pos = 0;
+
+                        // Write oftFile back to OFT
+                        _oft.SetFilePosition(index, pos);
+                    }
+                }
+
+                bytes.Add(oftFile.block.data[pos]);
+                pos++;
+            }
+
+            return bytes.ToArray();
         }
 
         /// <summary>
@@ -286,11 +340,6 @@ namespace FileSystem
             //var block = _ldisk.ReadBlock();
 
             return -1;
-        }
-
-        public FileDescriptor GetFileDescriptorByName()
-        {
-            //
         }
 
         public bool SetFile(int block, string name, int descriptor)

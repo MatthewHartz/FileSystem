@@ -15,7 +15,6 @@ namespace FileSystem
         static void Main(string[] args)
         {
             var fileSystem = FileSystem.Instance;
-            var buffer = Buffer.Instance;
 
             var userEntry = "";
             int handle;
@@ -50,7 +49,7 @@ namespace FileSystem
                     case "rd":
                         try
                         {
-                            fileSystem.Read(Convert.ToInt32(tokens[1]), buffer, Convert.ToInt32(tokens[2]));
+                            fileSystem.Read(Convert.ToInt32(tokens[1]), Convert.ToInt32(tokens[2]));
                         }
                         catch (FormatException e)
                         {
