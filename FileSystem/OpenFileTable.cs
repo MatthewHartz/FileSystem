@@ -14,6 +14,7 @@ namespace FileSystem
     /// </summary>
     class OpenFileTable
     {
+        //private Ldisk _ldisk = Ldisk.Instance;
         private readonly OftFile[] _files;
 
         public OpenFileTable()
@@ -41,6 +42,11 @@ namespace FileSystem
         {
             _files[index].position = pos;
         }
+
+        public void UpdateFile(int index, OftFile file)
+        {
+            _files[index] = file;
+        }
     }
 
     class OftFile
@@ -51,11 +57,11 @@ namespace FileSystem
 
         public OftFile() { }
 
-        public OftFile(Block b, int pos, int i)
+        public OftFile(Block blockval, int pos, int ind)
         {
-            block = b;
             position = pos;
-            index = i;
+            index = ind;
+            block = new Block(blockval.data);
         }
     }
 }

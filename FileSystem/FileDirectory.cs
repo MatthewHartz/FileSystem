@@ -6,14 +6,11 @@ using System.Threading.Tasks;
 
 namespace FileSystem
 {
-    /// <summary>
-    /// This is the data structure for a file.
-    /// </summary>
-    public static class FSfile
+    class FileDirectory
     {
-        private static Ldisk _ldisk = Ldisk.Instance;
+        private Ldisk _ldisk = Ldisk.Instance;
+        private List<DirectoryFile> _files; 
 
-        /*
         public static bool OpenFileExists(Block block)
         {
             var index = 0;
@@ -31,20 +28,35 @@ namespace FileSystem
 
                 if (value == -1)
                 {
-                    
-                    return new FSfile(
+                    /*
+                    return new DirectoryFile(
                     {
                         name = new char[4] { 'a', 'b', 'c', 'd'},
-                        index = 4
+                        descriptorIndex = 4
                     };
+                     */
                      
                 }
             }
 
             return false;
         }
-         */
+    }
 
-        
+        /// <summary>
+    /// This is the data structure for a file.
+    /// </summary>
+    public class DirectoryFile
+    {
+        public char[] name;
+        public int descriptorIndex;
+
+        public DirectoryFile() { }
+
+        public DirectoryFile(char[] n, int index)
+        {
+            name = n;
+            descriptorIndex = index;
+        }
     }
 }

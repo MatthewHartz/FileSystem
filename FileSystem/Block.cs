@@ -25,7 +25,12 @@ namespace FileSystem
 
         public Block(sbyte[] d)
         {
-            data = d;
+            data = new sbyte[64];
+
+            for (var i = 0; i < d.Length; i++)
+            {
+                data[i] = d[i];
+            }
         }
     }
 }

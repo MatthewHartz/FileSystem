@@ -75,16 +75,19 @@ namespace FileSystem
         /// </summary>
         /// <param name="descriptorNumber">The descriptor number.</param>
         /// <param name="blockNumber">The block number.</param>
-        public void SetBlockToDescriptor(int descriptorNumber, int blockNumber)
+        public bool SetBlockToDescriptor(int descriptorNumber, int blockNumber)
         {
             for (var i = 0; i < 3; i++)
             {
                 if (_fileDescriptors[descriptorNumber].map[i] == -1)
                 {
                     _fileDescriptors[descriptorNumber].map[i] = blockNumber;
-                    break;
+                    _bitmap.SetBit(blockNumber);
+                    return true;
                 }
              }
+
+            return false;
         }
 
         /// <summary>
@@ -102,6 +105,15 @@ namespace FileSystem
             }
 
             return -1;
+        }
+
+        /// <summary>
+        /// Sets the block to 1 in the bitmap
+        /// </summary>
+        /// <param name="index">The index.</param>
+        public void SetBlock(int index)
+        {
+            _bitmap.SetBit(index);
         }
 
         /// <summary>

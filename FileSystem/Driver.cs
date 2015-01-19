@@ -27,7 +27,12 @@ namespace FileSystem
                 switch (tokens[0].ToLower())
                 {
                     case "cr":
-                        fileSystem.Create(tokens[1] + "\0");
+                        try
+                        {
+                            if (fileSystem.Create(tokens[1] + "\0"))
+                                Console.WriteLine(tokens[1] + " created");                         
+                        }
+                        catch (Exception e) { }
                         break;
                     case "de":
                         fileSystem.Destroy(tokens[1]);

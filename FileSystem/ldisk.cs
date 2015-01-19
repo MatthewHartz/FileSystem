@@ -42,7 +42,7 @@ namespace FileSystem
 
         public Block ReadBlock(int index)
         {
-            return _blocks[index];
+            return new Block(_blocks[index].data);
         }
 
         public void SetBlock(Block block, int index)

@@ -34,21 +34,24 @@ namespace FileSystem
         /// Creates the specified file.
         /// </summary>
         /// <param name="name">The name of the file.</param>
-        public void Create(string name)
+        public bool Create(string name)
         {
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
                 Console.WriteLine("Disk not initialized");
-                return;
+                return false;
             }
 
             // Error if length of file is greater than 4 with null included
             if (name.Length > 4)
             {
                 Console.WriteLine("cannot accept names longer than 3 characters");
-                return;
+                return false;
             }
+
+            // Seek back to the beginning
+            Lseek(DirectoryFileDescriptor, 0);
 
             // Find open file descriptor
             var descriptor = _memcache.GetOpenFileDescriptor();
@@ -56,30 +59,36 @@ namespace FileSystem
             if (descriptor == -1)
             {
                 Console.WriteLine("No empty file descriptors");
-                return;
+                return false;
             }
                     
 
             // get the list of blocks used by directory descriptor
-            var blocks = _memcache.GetDescriptorMap(0);
+            var directoryDesc = _memcache.GetFileDescriptorByIndex(DirectoryFileDescriptor);
+            var directoryBlocks = directoryDesc.map.Select(x => x).Where(y => y != -1);
 
-            foreach (var block in blocks)
+            // Iterate over the directory's blocks searching for a place to store the file
+            foreach (var block in directoryBlocks)
             {
-                /*if (FSfile.SetFile(block, name, descriptor))
+                if (SetFile(block, name, descriptor))
                 {
                     _memcache.SetDescriptorLength(descriptor, 0);
-                    return;
-                }*/
+                    _memcache.SetDescriptorLength(DirectoryFileDescriptor,  directoryDesc.length + 8);
+                    return true;
+                }
             }
 
             // If a open file was not found and a new block can be added, add it.
-            if (blocks.Count != 3)
+            if (directoryBlocks.Count() != 3)
             {
+                // Assign a new block to the directory
                 var newblock = _memcache.GetOpenBlock();
-                _memcache.SetBlockToDescriptor(descriptor, newblock);
+                _memcache.SetBlockToDescriptor(DirectoryFileDescriptor, newblock);
                     
-                //FSfile.SetFile(newblock, name, descriptor);
+                SetFile(newblock, name, descriptor);
                 _memcache.SetDescriptorLength(descriptor, 0);
+                _memcache.SetDescriptorLength(DirectoryFileDescriptor, directoryDesc.length + 8);
+                return true;
             }
 
             // Have both descriptor and file, fill both entries
@@ -95,8 +104,7 @@ namespace FileSystem
                 Console.WriteLine("No empty directory files");
             }
                 */
-            Console.WriteLine(name + " created");
-                
+            return false;
         }
 
         /// <summary>
@@ -191,7 +199,7 @@ namespace FileSystem
                         pos = 0;
 
                         // Write oftFile back to OFT
-                        _oft.SetFilePosition(index, pos);
+                        _oft.UpdateFile(index, oftFile);
                     }
                 }
 
@@ -211,7 +219,65 @@ namespace FileSystem
         /// <returns></returns>
         public int Write(int index, char character, int count)
         {
-            return 0;
+            // Get OftFile from OFT
+            var oftFile = _oft.GetFile(index);
+
+            // Get Descriptor
+            var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
+
+            // Save current block index
+            var blockIndex = oftFile.position / 64;
+
+            var bytesWritten = 0;
+
+            // loop through block until desired count or end of file reached or end of buffer is reached.
+            for (var i = 0; i < count; i++)
+            {
+                // if exhausted the whole block
+                if ((oftFile.position != 0) && (oftFile.position % MaxBlockLength == 0))
+                {
+                    // Reached max file length
+                    if (oftFile.position/64 == 3)
+                    {
+                        return bytesWritten;
+                    }
+
+                    // If next block already exists
+                    if (fd.map[oftFile.position/64] != -1)
+                    {
+                        // write buffer to disk
+                        _ldisk.SetBlock(oftFile.block, fd.map[blockIndex]);
+
+                        blockIndex++;
+
+                        // read the new block
+                        oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
+                        oftFile.position = 0;
+
+                        // Write oftFile back to OFT
+                        _oft.UpdateFile(index, oftFile);
+                    }
+                    else
+                    {
+                        // write buffer to disk
+                        _ldisk.SetBlock(oftFile.block, fd.map[blockIndex]);
+
+                        blockIndex++;
+
+                        var newBlock = _memcache.GetOpenBlock();
+                        _memcache.SetBlockToDescriptor(index, newBlock);
+                        oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
+                    }
+                    
+                }
+
+                oftFile.block.data[oftFile.position % MaxBlockLength] = (sbyte)character;
+                oftFile.position++;
+                bytesWritten++;
+            }
+
+            _oft.UpdateFile(index, oftFile);
+            return bytesWritten;
         }
 
         /// <summary>
@@ -219,18 +285,20 @@ namespace FileSystem
         /// </summary>
         /// <param name="index">The index.</param>
         /// <param name="pos">The position.</param>
-        public void Lseek(int index, int pos)
+        public bool Lseek(int index, int pos)
         {
             var oft = _oft.GetFile(index);
 
             if (oft != null)
             {
                 var newBlock = pos/64;
+                var oldBlock = oft.position/64;
 
                 // if new position is still in current block
-                if (oft.index == newBlock)
+                if (oldBlock == newBlock)
                 {
-                    _oft.SetFilePosition(index, pos);
+                    oft.position = pos;
+                    _oft.UpdateFile(0, oft);
                 }
                 else
                 {
@@ -238,7 +306,7 @@ namespace FileSystem
                     var descriptor = _memcache.GetFileDescriptorByIndex(oft.index);
 
                     // write buffer to disk
-                    _ldisk.SetBlock(oft.block, descriptor.map[oft.index]);
+                    _ldisk.SetBlock(oft.block, descriptor.map[oldBlock]);
 
                     // read the new block
                     oft.block = _ldisk.ReadBlock(descriptor.map[newBlock]);
@@ -247,13 +315,14 @@ namespace FileSystem
                     oft.position = pos;
 
                     // Write oftFile back to OFT
-                    _oft.SetFilePosition(index, pos);
+                    _oft.UpdateFile(0, oft);
+
                 }
+                return true;
             }
-            else
-            {
-                Console.WriteLine("Invalid file index");   
-            }
+
+            Console.WriteLine("Invalid file index");
+            return false;
         }
 
         /// <summary>
@@ -300,6 +369,8 @@ namespace FileSystem
                 };
                 _memcache.SetFileDescriptorByIndex(DirectoryFileDescriptor, fd);
 
+                // Set freeblock in bitmap for directory
+                _memcache.SetBlock(freeBlock);
 
                 // Add directory to OFT
                 _oft.AddFile(_ldisk.ReadBlock(freeBlock), 0, 0);
@@ -342,20 +413,19 @@ namespace FileSystem
             return -1;
         }
 
-        public bool SetFile(int block, string name, int descriptor)
+        public bool SetFile(int b, string name, int descriptor)
         {
-            var data = _ldisk.ReadBlock(block).data;
+            var block = _ldisk.ReadBlock(b);
             var index = 0;
 
-            // 55 == 63 - 8 (size of file block)
-            while (index < 55)
+            while (index < 64)
             {
                 var bytes = new[]
                     {
-                        data[index],
-                        data[index + 1],
-                        data[index + 2],
-                        data[index + 3]
+                        block.data[index],
+                        block.data[index + 1],
+                        block.data[index + 2],
+                        block.data[index + 3]
                     };
                 var value = BitConverter.ToInt32((byte[])(Array)bytes, 0);
 
@@ -363,17 +433,19 @@ namespace FileSystem
                 {
                     var desc = BitConverter.GetBytes(descriptor);
 
-                    data[index] = (sbyte)name[0];
-                    data[index + 1] = (sbyte)name[1];
-                    data[index + 2] = (sbyte)name[2];
-                    data[index + 3] = (sbyte)name[3];
+                    // Added each character to the block
+                    for (var i = 0; i < name.Length; i++)
+                    {
+                        block.data[index + i] = (sbyte)name[i];
+                        
+                    }
 
-                    data[index + 4] = (sbyte)desc[0];
-                    data[index + 5] = (sbyte)desc[1];
-                    data[index + 6] = (sbyte)desc[2];
-                    data[index + 7] = (sbyte)desc[3];
+                    block.data[index + 4] = (sbyte)desc[0];
+                    block.data[index + 5] = (sbyte)desc[1];
+                    block.data[index + 6] = (sbyte)desc[2];
+                    block.data[index + 7] = (sbyte)desc[3];
 
-                    //_ldisk.SetBlock(data);
+                    _ldisk.SetBlock(block, b);
 
                     return true;
                 }
