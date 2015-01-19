@@ -117,6 +117,15 @@ namespace FileSystem
         }
 
         /// <summary>
+        /// Sets the block to 1 in the bitmap
+        /// </summary>
+        /// <param name="index">The index.</param>
+        public void ClearBlock(int index)
+        {
+            _bitmap.ClearBit(index);
+        }
+
+        /// <summary>
         /// Sets the length of the descriptor.
         /// </summary>
         /// <param name="descriptorNum">The descriptor number.</param>

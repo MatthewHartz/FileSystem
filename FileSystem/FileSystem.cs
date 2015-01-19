@@ -50,7 +50,8 @@ namespace FileSystem
                 return false;
             }
 
-            name = name.PadRight(4, '\0');
+            name = name.PadRight(4, ' ');
+            
             // Seek back to the beginning
             Lseek(DirectoryFileDescriptor, 0);
 
@@ -70,7 +71,7 @@ namespace FileSystem
             // Search until max directory size
             while (oftFile.position != MaxBlockLength * 3)
             {
-                var bytes = new sbyte[4];
+                var bytes = new sbyte[8];
                 var oldPos = oftFile.position;
                 bytes = Read(DirectoryFileDescriptor, 8);
 
@@ -125,7 +126,66 @@ namespace FileSystem
         /// Destroys the specified file.
         /// </summary>
         /// <param name="name">The name.</param>
-        public void Destroy(string name) {}
+        public bool Destroy(string deleteName)
+        {
+            // If disk and cache have not been initialized error
+            if ((_ldisk == null) || (_memcache == null))
+            {
+                Console.WriteLine("Disk not initialized");
+                return false;
+            }
+
+            // Error if length of file is greater than 4 with null included
+            if (deleteName.Length > 4)
+            {
+                Console.WriteLine("cannot accept names longer than 3 characters");
+                return false;
+            }
+
+            // Seek back to the beginning
+            Lseek(DirectoryFileDescriptor, 0);
+
+            // Get OpenFileTable entry for directory
+            var oftFile = _oft.GetFile(0);
+
+            while (oftFile.position != MaxBlockLength*3)
+            {
+                var oldPos = oftFile.position;
+
+                // Get name and descriptor
+                var name = Encoding.UTF8.GetString((byte[])(Array)Read(DirectoryFileDescriptor, 4), 0, 4).Trim(); // remove the padding when allocating
+                var descriptor = BitConverter.ToInt32((byte[])(Array)Read(DirectoryFileDescriptor, 4), 0);
+
+                if (deleteName == name)
+                {
+                    var fd = _memcache.GetFileDescriptorByIndex(descriptor);
+                    oftFile.position = oldPos;
+
+                    sbyte emptySbyte = -1;
+
+                    // Remove directory entry
+                    Write(0, (char)emptySbyte, 8);
+
+                    var blocks = fd.map.Where(x => x != -1).Select(y => y);
+
+
+                    // update bitmap
+                    foreach (var block in blocks)
+                    {
+                        _memcache.ClearBlock(block);
+                    }
+
+                    // free file descriptor
+                    fd.length = -1;
+                    fd.map = new[] {-1, -1, -1};
+
+                    return true;
+                }
+            }
+
+            Console.WriteLine("File not found");
+            return false;
+        }
 
         /// <summary>
         /// Opens the specified file.

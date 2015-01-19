@@ -35,7 +35,12 @@ namespace FileSystem
                         catch (Exception e) { }
                         break;
                     case "de":
-                        fileSystem.Destroy(tokens[1]);
+                        try
+                        {
+                            if (fileSystem.Destroy(tokens[1] + "\0"))
+                                Console.WriteLine(tokens[1] + " destroyed");
+                        }
+                        catch (Exception e) { }
                         break;
                     case "op":
                         handle = fileSystem.Open(tokens[1]);
