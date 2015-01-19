@@ -22,20 +22,16 @@ namespace FileSystem
             _files = new OftFile[4];
         }
 
-        public int AddFile(Block block, int pos, int index)
-        {
-            for (var i = 0; i < _files.Length; i++)
-            {
-                _files[i] = new OftFile(block, pos, index);
-                return i;
-            }
-
-            return -1;
-        }
-
         public OftFile GetFile(int index)
         {
-            return _files[index];
+            try
+            {
+                return _files[index];
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
         }
 
         public void SetFilePosition(int index, int pos)
@@ -47,6 +43,29 @@ namespace FileSystem
         {
             _files[index] = file;
         }
+
+        public void CloseFile(int index)
+        {
+            _files[index] = new OftFile();
+        }
+
+        public void OpenFile(int index, Block block, int pos, int fd)
+        {
+            _files[index] = new OftFile(block, pos, fd);
+        }
+
+        public int GetFreeSlot()
+        {
+            for (int i = 0; i < _files.Length; i++)
+            {
+                if (_files[i] == null)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
     }
 
     class OftFile
@@ -55,7 +74,12 @@ namespace FileSystem
         public int position { get; set; }
         public int index { get; set; }
 
-        public OftFile() { }
+        public OftFile()
+        {
+            position = 0;
+            index = -1;
+            block = new Block();
+        }
 
         public OftFile(Block blockval, int pos, int ind)
         {

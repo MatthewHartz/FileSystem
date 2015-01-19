@@ -43,7 +43,11 @@ namespace FileSystem
                         catch (Exception e) { }
                         break;
                     case "op":
-                        handle = fileSystem.Open(tokens[1]);
+                        handle = fileSystem.Open(tokens[1] + "\0");
+                        if (handle != -1)
+                        {
+                            Console.WriteLine("{0} opened {1}", tokens[1], handle);
+                        }
                         break;
                     case "cl":
                         try
@@ -70,7 +74,8 @@ namespace FileSystem
                     case "wr":
                         try
                         {
-                            fileSystem.Write(Convert.ToInt32(tokens[1]), Convert.ToChar(tokens[2]), Convert.ToInt32(tokens[3]));
+                            var bytesWritten = fileSystem.Write(Convert.ToInt32(tokens[1]), Convert.ToChar(tokens[2]), Convert.ToInt32(tokens[3]));
+                            Console.WriteLine("{0} bytes written", bytesWritten);
                         }
                         catch (FormatException e)
                         {

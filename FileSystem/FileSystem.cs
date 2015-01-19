@@ -36,6 +36,8 @@ namespace FileSystem
         /// <param name="name">The name of the file.</param>
         public bool Create(string name)
         {
+            // TODO Check if file exists in directory
+
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
@@ -89,6 +91,10 @@ namespace FileSystem
                     }
 
                     _memcache.SetDescriptorLength(descriptor, 0);
+
+                    // allocate 1 block to descriptor
+                    var freeBlock = _memcache.GetOpenBlock();
+                    _memcache.SetBlockToDescriptor(descriptor, freeBlock);
                     return true;
                 }
 
@@ -112,6 +118,10 @@ namespace FileSystem
                     }
 
                     _memcache.SetDescriptorLength(descriptor, 0);
+
+                    // allocate 1 block to descriptor
+                    var freeBlock = _memcache.GetOpenBlock();
+                    _memcache.SetBlockToDescriptor(descriptor, freeBlock);
                     return true;
                 }
                 
@@ -190,36 +200,97 @@ namespace FileSystem
         /// <summary>
         /// Opens the specified file.
         /// </summary>
-        /// <param name="name">The name.</param>
+        /// <param name="openName">The name of the file to be opened.</param>
         /// <returns></returns>
-        public int Open(string name)
+        public int Open(string openName)
         {
-            /*
-             * search directory to find index of file descriptor (i)
-             * allocate a free OFT entry (reuse deleted entries)
-             * fill in current position (0) and file descriptor index (i)
-             * read block 0 of file into the r/w buffer (read-ahead)
-             * return OFT index (j) (or return error)
-             * consider adding a file length field (to simplify checking)
-             */
+            // TODO Check if file exists in OFT
 
-            return 0;
+            // If disk and cache have not been initialized error
+            if ((_ldisk == null) || (_memcache == null))
+            {
+                Console.WriteLine("Disk not initialized");
+                return -1;
+            }
+
+            // Error if length of file is greater than 4 with null included
+            if (openName.Length > 4)
+            {
+                Console.WriteLine("cannot accept names longer than 3 characters");
+                return -1;
+            }
+
+            // Seek back to the beginning
+            Lseek(DirectoryFileDescriptor, 0);
+
+            // Get OpenFileTable entry for directory
+            var oftFile = _oft.GetFile(0);
+
+            while (oftFile.position != MaxBlockLength * 3)
+            {
+                // Get name and descriptor
+                var name = Encoding.UTF8.GetString((byte[])(Array)Read(DirectoryFileDescriptor, 4), 0, 4).Trim(); // remove the padding when allocating
+                var descriptor = BitConverter.ToInt32((byte[])(Array)Read(DirectoryFileDescriptor, 4), 0);
+
+                if (openName == name)
+                {
+                    var fd = _memcache.GetFileDescriptorByIndex(descriptor);
+
+                    var oftPos = _oft.GetFreeSlot();
+                    
+                    // insert into oft table
+                    if (oftPos != -1)
+                    {
+                        _oft.OpenFile(oftPos, _ldisk.ReadBlock(fd.map[0]), 0, descriptor);
+                        return oftPos;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Too many open files");
+                        return -1;
+                    }
+                }
+            }
+
+            // file was not found
+            return -1;
         }
 
         /// <summary>
         /// Closes the specified file.
         /// </summary>
         /// <param name="file">The file.</param>
-        public void Close(int file)
+        public int Close(int file)
         {
-            /*
-             * write buffer to disk
-             * update file length in descriptor
-             * free OFT entry
-             * return status
-             */
+            // If disk and cache have not been initialized error
+            if ((_ldisk == null) || (_memcache == null))
+            {
+                Console.WriteLine("Disk not initialized");
+                return -1;
+            }
+
+            var oftFile = _oft.GetFile(file);
+
+            // Error if unable to access OFT index
+            if (oftFile == null)
+            {
+                Console.WriteLine("Invalid OFT index");
+                return -1;
+            }
+
+            var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
+
+            // write buffer to disk
+            _ldisk.SetBlock(oftFile.block, fd.map[oftFile.position / 64]);
+
+            // update file length in descriptor
+            fd.length = 0;
 
 
+            // free OFT entry
+            _oft.CloseFile(file);
+
+            return file;
         }
 
         /// <summary>
@@ -260,18 +331,6 @@ namespace FileSystem
                 // if exhausted the whole block
                 if (oftFile.position % MaxBlockLength == 0)
                 {
-                    // if exhausted whole file, return bytes
-                    /*if (oftFile.position/MaxBlockLength == maxBlocks)
-                    {
-                        _oft.UpdateFile(index, oftFile);
-                        return bytes.ToArray();
-                     * 
-                     * THIS MIGHT BE UNNECESSARY NOW
-                    }*/
-                    // else write block back and read the next block into 
-                    // the oft/its file and reposition
-                    //else
-                    //{
                     // write buffer to disk
                     _ldisk.SetBlock(oftFile.block, fd.map[blockIndex]);
 
@@ -470,7 +529,8 @@ namespace FileSystem
                 _memcache.SetBlock(freeBlock);
 
                 // Add directory to OFT
-                _oft.AddFile(_ldisk.ReadBlock(freeBlock), 0, 0);
+                var oftPos = _oft.GetFreeSlot();
+                _oft.OpenFile(oftPos, _ldisk.ReadBlock(freeBlock), 0, 0);
 
                 Console.WriteLine("disk initialized");
             }
