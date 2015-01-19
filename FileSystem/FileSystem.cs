@@ -36,8 +36,6 @@ namespace FileSystem
         /// <param name="name">The name of the file.</param>
         public bool Create(string name)
         {
-            Write(0, 'A', 64);
-            Write(0, 'B', 1);
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
@@ -100,7 +98,7 @@ namespace FileSystem
                     //public int Write(int index, char character, int count)
                     var characters = new List<char>();
                     characters.AddRange(name);
-                    characters.AddRange((char[])(Array)BitConverter.GetBytes(descriptor));
+                    characters.AddRange(BitConverter.GetBytes(descriptor).Select(x => (char)x));
 
                     // update position
                     oftFile.position = oldPos;
@@ -121,46 +119,6 @@ namespace FileSystem
 
             Console.WriteLine("Directory is full");
             return false;
-
-            // Iterate over the directory's blocks searching for a place to store the file
-            /*
-            foreach (var block in directoryBlocks)
-            {
-                if (SetFile(block, name, descriptor))
-                {
-                    _memcache.SetDescriptorLength(descriptor, 0);
-                    _memcache.SetDescriptorLength(DirectoryFileDescriptor,  directoryDesc.length + 8);
-                    return true;
-                }
-            }
-
-            // If a open file was not found and a new block can be added, add it.
-            if (directoryBlocks.Count() != 3)
-            {
-                // Assign a new block to the directory
-                var newblock = _memcache.GetOpenBlock();
-                _memcache.SetBlockToDescriptor(DirectoryFileDescriptor, newblock);
-                    
-                SetFile(newblock, name, descriptor);
-                _memcache.SetDescriptorLength(descriptor, 0);
-                _memcache.SetDescriptorLength(DirectoryFileDescriptor, directoryDesc.length + 8);
-                return true;
-            }
-             */
-
-            // Have both descriptor and file, fill both entries
-            /*
-            if (file != null)
-            {
-                var length = _memcache.GetDescriptorLength(0);
-                _memcache.SetDescriptorLength(0, length + 8);
-                Console.WriteLine("{0} created", name);
-            }
-            else
-            {
-                Console.WriteLine("No empty directory files");
-            }
-                */
         }
 
         /// <summary>
@@ -236,8 +194,11 @@ namespace FileSystem
                     return bytes.ToArray();
                 }
 
+                bytes.Add(oftFile.block.data[oftFile.position % 64]);
+                oftFile.position++;
+
                 // if exhausted the whole block
-                if ((oftFile.position != 0) && (oftFile.position%MaxBlockLength == 0))
+                if (oftFile.position % MaxBlockLength == 0)
                 {
                     // if exhausted whole file, return bytes
                     /*if (oftFile.position/MaxBlockLength == maxBlocks)
@@ -258,15 +219,12 @@ namespace FileSystem
 
                     // read the new block
                     oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
-                    oftFile.position = 0;
 
                     // Write oftFile back to OFT
                     _oft.UpdateFile(index, oftFile);
                     //}
                 }
 
-                bytes.Add(oftFile.block.data[oftFile.position]);
-                oftFile.position++;
             }
 
             _oft.UpdateFile(index, oftFile);
@@ -296,18 +254,21 @@ namespace FileSystem
             // loop through block until desired count or end of file reached or end of buffer is reached.
             for (var i = 0; i < count; i++)
             {
+                oftFile.block.data[oftFile.position % MaxBlockLength] = (sbyte)character;
+                oftFile.position++;
+
                 // if exhausted the whole block
-                if ((oftFile.position != 0) && (oftFile.position % MaxBlockLength == 0))
+                if (oftFile.position % MaxBlockLength == 0)
                 {
                     // Reached max file length
-                    if (oftFile.position/64 == 3)
+                    if (oftFile.position / 64 == 3)
                     {
                         fd.length += bytesWritten;
                         return bytesWritten;
                     }
 
                     // If next block already exists
-                    if (fd.map[oftFile.position/64] != -1)
+                    if (fd.map[oftFile.position / 64] != -1)
                     {
                         // write buffer to disk
                         _ldisk.SetBlock(oftFile.block, fd.map[blockIndex]);
@@ -332,11 +293,8 @@ namespace FileSystem
                         _memcache.SetBlockToDescriptor(index, newBlock);
                         oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
                     }
-                    
-                }
 
-                oftFile.block.data[oftFile.position % MaxBlockLength] = (sbyte)character;
-                oftFile.position++;
+                }
 
                 // if at new block posiiton, read in the next block
                 /*if (oftFile.position % MaxBlockLength == 0 && oftFile.position / 64 != 3)
