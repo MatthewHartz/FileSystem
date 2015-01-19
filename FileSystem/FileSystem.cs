@@ -36,6 +36,8 @@ namespace FileSystem
         /// <param name="name">The name of the file.</param>
         public bool Create(string name)
         {
+            Write(0, 'A', 64);
+            Write(0, 'B', 1);
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
@@ -50,8 +52,12 @@ namespace FileSystem
                 return false;
             }
 
+            name = name.PadRight(4, '\0');
             // Seek back to the beginning
             Lseek(DirectoryFileDescriptor, 0);
+
+            // Get OpenFileTable entry for directory
+            var oftFile = _oft.GetFile(0);
 
             // Find open file descriptor
             var descriptor = _memcache.GetOpenFileDescriptor();
@@ -61,13 +67,63 @@ namespace FileSystem
                 Console.WriteLine("No empty file descriptors");
                 return false;
             }
-                    
 
-            // get the list of blocks used by directory descriptor
-            var directoryDesc = _memcache.GetFileDescriptorByIndex(DirectoryFileDescriptor);
-            var directoryBlocks = directoryDesc.map.Select(x => x).Where(y => y != -1);
+
+            // Search until max directory size
+            while (oftFile.position != MaxBlockLength * 3)
+            {
+                var bytes = new sbyte[4];
+                var oldPos = oftFile.position;
+                bytes = Read(DirectoryFileDescriptor, 8);
+
+                // Reached end of file, but there is room to append
+                if (bytes.Count() == 0)
+                {
+                    var characters = new List<char>();
+                    characters.AddRange(name);
+                    characters.AddRange(BitConverter.GetBytes(descriptor).Select(x => (char)x));
+
+                    // write characters to buffer
+                    foreach (var character in characters)
+                    {
+                        Write(0, character, 1);
+                    }
+
+                    _memcache.SetDescriptorLength(descriptor, 0);
+                    return true;
+                }
+
+                // Test if file is -1, if so add it.
+                if (BitConverter.ToInt32((byte[]) (Array) bytes, 4) == -1)
+                {
+                    //var df = new DirectoryFile(name.ToCharArray(), descriptor);
+                    //public int Write(int index, char character, int count)
+                    var characters = new List<char>();
+                    characters.AddRange(name);
+                    characters.AddRange((char[])(Array)BitConverter.GetBytes(descriptor));
+
+                    // update position
+                    oftFile.position = oldPos;
+                    _oft.UpdateFile(0, oftFile);
+
+                    // write characters to buffer
+                    foreach (var character in characters)
+                    {
+                        Write(0, character, 1);
+                    }
+
+                    _memcache.SetDescriptorLength(descriptor, 0);
+                    return true;
+                }
+                
+
+            }
+
+            Console.WriteLine("Directory is full");
+            return false;
 
             // Iterate over the directory's blocks searching for a place to store the file
+            /*
             foreach (var block in directoryBlocks)
             {
                 if (SetFile(block, name, descriptor))
@@ -90,6 +146,7 @@ namespace FileSystem
                 _memcache.SetDescriptorLength(DirectoryFileDescriptor, directoryDesc.length + 8);
                 return true;
             }
+             */
 
             // Have both descriptor and file, fill both entries
             /*
@@ -104,7 +161,6 @@ namespace FileSystem
                 Console.WriteLine("No empty directory files");
             }
                 */
-            return false;
         }
 
         /// <summary>
@@ -162,14 +218,11 @@ namespace FileSystem
             // Get Descriptor
             var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
 
-            // Save current position
-            var pos = oftFile.position;
-
             // Save current block index
             var blockIndex = oftFile.position/64;
 
             // Save total blocks initialized
-            var maxBlocks = fd.map.Select(x => x).Count(y => y != -1);
+            //var maxBlocks = fd.map.Select(x => x).Count(y => y != -1);
 
             // Initialize byte array
             var bytes = new List<sbyte>();
@@ -177,36 +230,46 @@ namespace FileSystem
             // loop through block until desired count or end of file reached or end of buffer is reached.
             for (var i = 0; i < count; i++)
             {
-                // if exhausted the whole block
-                if ((pos != 0) && (pos%MaxBlockLength == 0))
+                if (oftFile.position == fd.length)
                 {
-                    // if exhausted whole file, return bytes
-                    if (pos/MaxBlockLength == maxBlocks)
-                    {
-                        return bytes.ToArray();
-                    }
-                    // else write block back and read the next block into 
-                    // the oft/its file and reposition
-                    else
-                    {
-                        // write buffer to disk
-                        _ldisk.SetBlock(oftFile.block, fd.map[blockIndex]);
-
-                        blockIndex++;
-
-                        // read the new block
-                        oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
-                        pos = 0;
-
-                        // Write oftFile back to OFT
-                        _oft.UpdateFile(index, oftFile);
-                    }
+                    _oft.UpdateFile(index, oftFile);
+                    return bytes.ToArray();
                 }
 
-                bytes.Add(oftFile.block.data[pos]);
-                pos++;
+                // if exhausted the whole block
+                if ((oftFile.position != 0) && (oftFile.position%MaxBlockLength == 0))
+                {
+                    // if exhausted whole file, return bytes
+                    /*if (oftFile.position/MaxBlockLength == maxBlocks)
+                    {
+                        _oft.UpdateFile(index, oftFile);
+                        return bytes.ToArray();
+                     * 
+                     * THIS MIGHT BE UNNECESSARY NOW
+                    }*/
+                    // else write block back and read the next block into 
+                    // the oft/its file and reposition
+                    //else
+                    //{
+                    // write buffer to disk
+                    _ldisk.SetBlock(oftFile.block, fd.map[blockIndex]);
+
+                    blockIndex++;
+
+                    // read the new block
+                    oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
+                    oftFile.position = 0;
+
+                    // Write oftFile back to OFT
+                    _oft.UpdateFile(index, oftFile);
+                    //}
+                }
+
+                bytes.Add(oftFile.block.data[oftFile.position]);
+                oftFile.position++;
             }
 
+            _oft.UpdateFile(index, oftFile);
             return bytes.ToArray();
         }
 
@@ -239,6 +302,7 @@ namespace FileSystem
                     // Reached max file length
                     if (oftFile.position/64 == 3)
                     {
+                        fd.length += bytesWritten;
                         return bytesWritten;
                     }
 
@@ -273,10 +337,25 @@ namespace FileSystem
 
                 oftFile.block.data[oftFile.position % MaxBlockLength] = (sbyte)character;
                 oftFile.position++;
+
+                // if at new block posiiton, read in the next block
+                /*if (oftFile.position % MaxBlockLength == 0 && oftFile.position / 64 != 3)
+                {
+                    _ldisk.SetBlock(oftFile.block, fd.map[blockIndex]);
+
+                    blockIndex++;
+
+                    var newBlock = _memcache.GetOpenBlock();
+                    _memcache.SetBlockToDescriptor(index, newBlock);
+                    oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
+                    _oft.UpdateFile(index, oftFile);
+                }*/
+
                 bytesWritten++;
             }
 
             _oft.UpdateFile(index, oftFile);
+            fd.length += bytesWritten;
             return bytesWritten;
         }
 
@@ -411,50 +490,6 @@ namespace FileSystem
             //var block = _ldisk.ReadBlock();
 
             return -1;
-        }
-
-        public bool SetFile(int b, string name, int descriptor)
-        {
-            var block = _ldisk.ReadBlock(b);
-            var index = 0;
-
-            while (index < 64)
-            {
-                var bytes = new[]
-                    {
-                        block.data[index],
-                        block.data[index + 1],
-                        block.data[index + 2],
-                        block.data[index + 3]
-                    };
-                var value = BitConverter.ToInt32((byte[])(Array)bytes, 0);
-
-                if (value == -1)
-                {
-                    var desc = BitConverter.GetBytes(descriptor);
-
-                    // Added each character to the block
-                    for (var i = 0; i < name.Length; i++)
-                    {
-                        block.data[index + i] = (sbyte)name[i];
-                        
-                    }
-
-                    block.data[index + 4] = (sbyte)desc[0];
-                    block.data[index + 5] = (sbyte)desc[1];
-                    block.data[index + 6] = (sbyte)desc[2];
-                    block.data[index + 7] = (sbyte)desc[3];
-
-                    _ldisk.SetBlock(block, b);
-
-                    return true;
-                }
-
-
-                index += 8;
-            }
-
-            return false;
         }
     }
 }

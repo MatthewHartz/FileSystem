@@ -53,6 +53,16 @@ namespace FileSystem
 
         public DirectoryFile() { }
 
+        public DirectoryFile(sbyte[] n, sbyte[] d)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                name[i] = (char)n[i];
+            }
+
+            descriptorIndex = Convert.ToInt32(d);
+        }
+
         public DirectoryFile(char[] n, int index)
         {
             name = n;
