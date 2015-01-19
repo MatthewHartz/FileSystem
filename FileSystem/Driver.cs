@@ -96,9 +96,13 @@ namespace FileSystem
                     case "dr":
                         var files = fileSystem.Directories();
 
-                        foreach (var file in files)
+                        try
                         {
-                            Console.WriteLine(file.ToString());
+                            Console.WriteLine(files.Aggregate((i, j) => i + ' ' + j));
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("No files exist");
                         }
                         break;
                     case "in":
@@ -116,6 +120,10 @@ namespace FileSystem
                         }
                         break;
                     case "sv":
+                        if (fileSystem.Save(tokens[1]))
+                        {
+                            Console.WriteLine("Disk saved");
+                        }
                         break;
                     default:
                         Console.WriteLine("Error: invalid operation");

@@ -414,20 +414,6 @@ namespace FileSystem
                     }
 
                 }
-
-                // if at new block posiiton, read in the next block
-                /*if (oftFile.position % MaxBlockLength == 0 && oftFile.position / 64 != 3)
-                {
-                    _ldisk.SetBlock(oftFile.block, fd.map[blockIndex]);
-
-                    blockIndex++;
-
-                    var newBlock = _memcache.GetOpenBlock();
-                    _memcache.SetBlockToDescriptor(index, newBlock);
-                    oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
-                    _oft.UpdateFile(index, oftFile);
-                }*/
-
                 bytesWritten++;
             }
 
@@ -487,7 +473,39 @@ namespace FileSystem
         /// <returns></returns>
         public List<string> Directories()
         {
-            return new List<string>();
+            var directories = new List<string>();
+
+            // If disk and cache have not been initialized error
+            if ((_ldisk == null) || (_memcache == null))
+            {
+                Console.WriteLine("Disk not initialized");
+                return directories;
+            }
+
+            // Seek back to the beginning
+            Lseek(DirectoryFileDescriptor, 0);
+
+            // Get OpenFileTable entry for directory
+            var oftFile = _oft.GetFile(0);
+
+            var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
+
+            while (oftFile.position < fd.length)
+            {
+                // Get name and descriptor
+                var bytes = Read(DirectoryFileDescriptor, 8);
+
+                if (BitConverter.ToInt32((byte[]) (Array) bytes, 4) != -1)
+                {
+                    var name = Encoding.UTF8.GetString((byte[])(Array)bytes, 0, 4).Replace('\0', ' ').Trim(); // remove the padding when allocating
+                    directories.Add(name);
+                }
+            }
+
+            
+
+
+            return directories;
         }
 
         /// <summary>
@@ -561,13 +579,16 @@ namespace FileSystem
         /// Saves the current state of the file system to the file.
         /// </summary>
         /// <param name="filename">The filename.</param>
-        public void Save(string filename) {}
-
-        private int GetDirectoryEntry()
+        public bool Save(string filename)
         {
-            //var block = _ldisk.ReadBlock();
+            // If disk and cache have not been initialized error
+            if ((_ldisk == null) || (_memcache == null))
+            {
+                Console.WriteLine("Disk not initialized");
+                return false;
+            }
 
-            return -1;
+            return true;
         }
     }
 }
