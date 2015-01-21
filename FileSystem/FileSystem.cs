@@ -34,39 +34,55 @@ namespace FileSystem
         /// Creates the specified file.
         /// </summary>
         /// <param name="name">The name of the file.</param>
-        public bool Create(string name)
+        public void Create(string name)
         {
-            // TODO Check if file exists in directory
-
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
-                Console.WriteLine("Disk not initialized");
-                return false;
+                throw new Exception("Disk not initialized");
             }
 
             // Error if length of file is greater than 4 with null included
             if (name.Length > 4)
             {
-                Console.WriteLine("cannot accept names longer than 3 characters");
-                return false;
+                throw new Exception("Cannot accept names longer than 3 characters");
             }
-
-            name = name.PadRight(4, ' ');
-            
-            // Seek back to the beginning
-            Lseek(DirectoryFileDescriptor, 0);
 
             // Get OpenFileTable entry for directory
             var oftFile = _oft.GetFile(0);
+
+            // Get directory file descriptor
+            var fd = _memcache.GetFileDescriptorByIndex(DirectoryFileDescriptor);
+
+            // Test to see if the file already exists
+            Lseek(0, 0);
+
+            // Search until max directory size
+            while (oftFile.position != fd.length)
+            {
+                var oldPos = oftFile.position;
+
+                // Get name and descriptor
+                var n = Encoding.UTF8.GetString((byte[])(Array)Read(DirectoryFileDescriptor, 8), 0, 4).Trim(); // remove the padding when allocating
+
+                if (n == name)
+                {
+                    throw new Exception("File already exists");
+                }
+            }
+
+            // Pad file name with spaces
+            name = name.PadRight(4, ' ');
+
+            // Seek back to the beginning
+            Lseek(DirectoryFileDescriptor, 0);
 
             // Find open file descriptor
             var descriptor = _memcache.GetOpenFileDescriptor();
 
             if (descriptor == -1)
             {
-                Console.WriteLine("No empty file descriptors");
-                return false;
+                throw new Exception("No empty file descriptors");
             }
 
 
@@ -95,21 +111,18 @@ namespace FileSystem
                     // allocate 1 block to descriptor
                     var freeBlock = _memcache.GetOpenBlock();
                     _memcache.SetBlockToDescriptor(descriptor, freeBlock);
-                    return true;
+                    return;
                 }
 
                 // Test if file is -1, if so add it.
                 if (BitConverter.ToInt32((byte[]) (Array) bytes, 4) == -1)
                 {
-                    //var df = new DirectoryFile(name.ToCharArray(), descriptor);
-                    //public int Write(int index, char character, int count)
                     var characters = new List<char>();
                     characters.AddRange(name);
                     characters.AddRange(BitConverter.GetBytes(descriptor).Select(x => (char)x));
 
                     // update position
-                    oftFile.position = oldPos;
-                    _oft.UpdateFile(0, oftFile);
+                    Lseek(DirectoryFileDescriptor, oldPos);
 
                     // write characters to buffer
                     foreach (var character in characters)
@@ -122,34 +135,31 @@ namespace FileSystem
                     // allocate 1 block to descriptor
                     var freeBlock = _memcache.GetOpenBlock();
                     _memcache.SetBlockToDescriptor(descriptor, freeBlock);
-                    return true;
+                    return;
                 }
                 
 
             }
 
-            Console.WriteLine("Directory is full");
-            return false;
+            throw new Exception("Directory is full");
         }
 
         /// <summary>
         /// Destroys the specified file.
         /// </summary>
         /// <param name="name">The name.</param>
-        public bool Destroy(string deleteName)
+        public void Destroy(string deleteName)
         {
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
-                Console.WriteLine("Disk not initialized");
-                return false;
+                throw new Exception("Disk not initialized");
             }
 
             // Error if length of file is greater than 4 with null included
             if (deleteName.Length > 4)
             {
-                Console.WriteLine("cannot accept names longer than 3 characters");
-                return false;
+                throw new Exception("Cannot accept names longer than 3 characters");
             }
 
             // Seek back to the beginning
@@ -169,7 +179,7 @@ namespace FileSystem
                 if (deleteName == name)
                 {
                     var fd = _memcache.GetFileDescriptorByIndex(descriptor);
-                    oftFile.position = oldPos;
+                    Lseek(0, oldPos);
 
                     sbyte emptySbyte = -1;
 
@@ -189,12 +199,11 @@ namespace FileSystem
                     fd.length = -1;
                     fd.map = new[] {-1, -1, -1};
 
-                    return true;
+                    return;
                 }
             }
 
-            Console.WriteLine("File not found");
-            return false;
+            throw new Exception("File not found");
         }
 
         /// <summary>
@@ -204,20 +213,16 @@ namespace FileSystem
         /// <returns></returns>
         public int Open(string openName)
         {
-            // TODO Check if file exists in OFT
-
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
-                Console.WriteLine("Disk not initialized");
-                return -1;
+                throw new Exception("Disk not initialized");
             }
 
             // Error if length of file is greater than 4 with null included
             if (openName.Length > 4)
             {
-                Console.WriteLine("cannot accept names longer than 3 characters");
-                return -1;
+                throw new Exception("Cannot accept names longer than 3 characters");
             }
 
             // Seek back to the beginning
@@ -236,6 +241,16 @@ namespace FileSystem
                 {
                     var fd = _memcache.GetFileDescriptorByIndex(descriptor);
 
+                    // check and see if file is already opened
+                    for (int i = 0; i < 4; i++)
+                    {
+                        var f = _oft.GetFile(i);
+                        if (f != null && f.index == descriptor)
+                        {
+                            throw new Exception("File is already opened");
+                        }
+                    }
+
                     var oftPos = _oft.GetFreeSlot();
                     
                     // insert into oft table
@@ -246,14 +261,13 @@ namespace FileSystem
                     }
                     else
                     {
-                        Console.WriteLine("Too many open files");
-                        return -1;
+                        throw new Exception("Too many open files");
                     }
                 }
             }
 
             // file was not found
-            return -1;
+            throw new Exception("File not found");
         }
 
         /// <summary>
@@ -265,17 +279,15 @@ namespace FileSystem
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
-                Console.WriteLine("Disk not initialized");
-                return -1;
+                throw new Exception("Disk not initialized");
             }
 
             var oftFile = _oft.GetFile(file);
 
             // Error if unable to access OFT index
-            if (oftFile == null)
+            if (oftFile == null || oftFile.index == 0)
             {
-                Console.WriteLine("Invalid OFT index");
-                return -1;
+                throw new Exception("Invalid OFT index");
             }
 
             var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
@@ -301,17 +313,26 @@ namespace FileSystem
         /// <returns></returns>
         public sbyte[] Read(int index, int count)
         {
+            // If disk and cache have not been initialized error
+            if ((_ldisk == null) || (_memcache == null))
+            {
+                throw new Exception("Disk not initialized");
+            }
+
             // Get OftFile from OFT
             var oftFile = _oft.GetFile(index);
+
+            // Error if length of file is greater than 4 with null included
+            if (oftFile == null)
+            {
+                throw new Exception("Invalid OFT index");
+            }
 
             // Get Descriptor
             var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
 
             // Save current block index
             var blockIndex = oftFile.position/64;
-
-            // Save total blocks initialized
-            //var maxBlocks = fd.map.Select(x => x).Count(y => y != -1);
 
             // Initialize byte array
             var bytes = new List<sbyte>();
@@ -321,7 +342,6 @@ namespace FileSystem
             {
                 if (oftFile.position == fd.length)
                 {
-                    _oft.UpdateFile(index, oftFile);
                     return bytes.ToArray();
                 }
 
@@ -338,15 +358,10 @@ namespace FileSystem
 
                     // read the new block
                     oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
-
-                    // Write oftFile back to OFT
-                    _oft.UpdateFile(index, oftFile);
-                    //}
                 }
 
             }
 
-            _oft.UpdateFile(index, oftFile);
             return bytes.ToArray();
         }
 
@@ -359,8 +374,20 @@ namespace FileSystem
         /// <returns></returns>
         public int Write(int index, char character, int count)
         {
+            // If disk and cache have not been initialized error
+            if ((_ldisk == null) || (_memcache == null))
+            {
+                throw new Exception("Disk not initialized");
+            }
+
             // Get OftFile from OFT
             var oftFile = _oft.GetFile(index);
+
+            // Error if length of file is greater than 4 with null included
+            if (oftFile == null)
+            {
+                throw new Exception("Invalid OFT index");
+            }
 
             // Get Descriptor
             var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
@@ -396,10 +423,6 @@ namespace FileSystem
 
                         // read the new block
                         oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
-                        oftFile.position = 0;
-
-                        // Write oftFile back to OFT
-                        _oft.UpdateFile(index, oftFile);
                     }
                     else
                     {
@@ -417,7 +440,6 @@ namespace FileSystem
                 bytesWritten++;
             }
 
-            _oft.UpdateFile(index, oftFile);
             fd.length += bytesWritten;
             return bytesWritten;
         }
@@ -429,42 +451,45 @@ namespace FileSystem
         /// <param name="pos">The position.</param>
         public bool Lseek(int index, int pos)
         {
-            var oft = _oft.GetFile(index);
-
-            if (oft != null)
+            // If disk and cache have not been initialized error
+            if ((_ldisk == null) || (_memcache == null))
             {
-                var newBlock = pos/64;
-                var oldBlock = oft.position/64;
-
-                // if new position is still in current block
-                if (oldBlock == newBlock)
-                {
-                    oft.position = pos;
-                    _oft.UpdateFile(0, oft);
-                }
-                else
-                {
-                    // Get descriptor from OFTfile
-                    var descriptor = _memcache.GetFileDescriptorByIndex(oft.index);
-
-                    // write buffer to disk
-                    _ldisk.SetBlock(oft.block, descriptor.map[oldBlock]);
-
-                    // read the new block
-                    oft.block = _ldisk.ReadBlock(descriptor.map[newBlock]);
-
-                    // Set the current position to new position
-                    oft.position = pos;
-
-                    // Write oftFile back to OFT
-                    _oft.UpdateFile(0, oft);
-
-                }
-                return true;
+                throw new Exception("Disk not initialized");
             }
 
-            Console.WriteLine("Invalid file index");
-            return false;
+            // Get OftFile from OFT
+            var oft = _oft.GetFile(index);
+
+            // Error if length of file is greater than 4 with null included
+            if (oft == null)
+            {
+                throw new Exception("Invalid OFT index");
+            }
+
+            var newBlock = pos/64;
+            var oldBlock = oft.position/64;
+
+            // if new position is still in current block
+            if (oldBlock == newBlock)
+            {
+                oft.position = pos;
+            }
+            else
+            {
+                // Get descriptor from OFTfile
+                var descriptor = _memcache.GetFileDescriptorByIndex(oft.index);
+
+                // write buffer to disk
+                _ldisk.SetBlock(oft.block, descriptor.map[oldBlock]);
+
+                // read the new block
+                oft.block = _ldisk.ReadBlock(descriptor.map[newBlock]);
+
+                // Set the current position to new position
+                oft.position = pos;
+
+            }
+            return true;
         }
 
         /// <summary>
@@ -478,8 +503,7 @@ namespace FileSystem
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
-                Console.WriteLine("Disk not initialized");
-                return directories;
+                throw new Exception("Disk not initialized");
             }
 
             // Seek back to the beginning
@@ -502,9 +526,6 @@ namespace FileSystem
                 }
             }
 
-            
-
-
             return directories;
         }
 
@@ -513,7 +534,7 @@ namespace FileSystem
         /// file exists, initialize the file system using that file.
         /// </summary>
         /// <param name="filename">The filename.</param>
-        public void Init(string filename)
+        public bool Init(string filename)
         {
             if (String.IsNullOrEmpty(filename))
             {
@@ -550,28 +571,49 @@ namespace FileSystem
                 var oftPos = _oft.GetFreeSlot();
                 _oft.OpenFile(oftPos, _ldisk.ReadBlock(freeBlock), 0, 0);
 
-                Console.WriteLine("disk initialized");
+                return true;
             }
             else
             {
-                /*
-                // initialize directory descriptor
-                var map = GetDescriptorMap(0);
+                var fileStream = new FileStream(filename, FileMode.Open);
+                var blockArray = new sbyte[64][];
+                try
+                {                   
+                    for (var i = 0; i < 64; i++)
+                    {
+                        var bytes = new sbyte[64];
+                        fileStream.Read((byte[])(Array)bytes, 0, 64);
 
-                // If directory's map has not been set, set it. If it has, don't worry
-                // because it should have been stored in bitmap.
-                if (map.Count == 0)
+                        blockArray[i] = bytes;
+                    }
+                }
+                finally
                 {
-                    var freeBlock = GetOpenBlock();
-                    _fileDescriptors[0] = new FileDescriptor(0, new[]
-                {
-                    freeBlock, -1, -1
-                });
+                    _ldisk = new Ldisk(blockArray);
+                    fileStream.Close();
+                }
 
-                    _bitmap.SetBit(freeBlock);
-                }*/
-                Console.WriteLine("disk restored");
-                 
+                var blocks = new[]
+                {
+                    _ldisk.ReadBlock(0),
+                    _ldisk.ReadBlock(1),
+                    _ldisk.ReadBlock(2),
+                    _ldisk.ReadBlock(3),
+                    _ldisk.ReadBlock(4),
+                    _ldisk.ReadBlock(5),
+                    _ldisk.ReadBlock(6),
+                };
+
+                _memcache = new Memcache(blocks);
+                _oft = new OpenFileTable();
+
+                // get directory file descriptor
+                var fd = _memcache.GetFileDescriptorByIndex(DirectoryFileDescriptor);
+
+                // open directory
+                _oft.OpenFile(0, _ldisk.ReadBlock(fd.map[0]), 0, DirectoryFileDescriptor);
+
+                return true;
             }
         }
 
@@ -579,16 +621,65 @@ namespace FileSystem
         /// Saves the current state of the file system to the file.
         /// </summary>
         /// <param name="filename">The filename.</param>
-        public bool Save(string filename)
+        public void Save(string filename)
         {
             // If disk and cache have not been initialized error
             if ((_ldisk == null) || (_memcache == null))
             {
-                Console.WriteLine("Disk not initialized");
-                return false;
+                throw new Exception("Disk not initialized");
             }
 
-            return true;
+            // save all OFT blocks to disk
+            for (int i = 0; i < 4; i++)
+            {
+                var oftFile = _oft.GetFile(i);
+
+                if (oftFile != null)
+                {
+                    var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
+
+                    _ldisk.SetBlock(oftFile.block, fd.map[oftFile.position/64]); // push the current block back to disk
+                }
+            }
+
+            // save the bitmap back to disk
+            _ldisk.SetBlock(_memcache.GetBitMap(), 0);
+
+            // save the file descriptors to disk
+            for (int i = 0; i < 6; i++)
+            {
+                var bytes = new List<sbyte>();
+                for (int j = 0; j < 4; j++)
+                {
+                    var fd = _memcache.GetFileDescriptorByIndex((i*4) + j);
+                    
+                    // add length to bytes
+                    bytes.AddRange(BitConverter.GetBytes(fd.length).Select(x => (sbyte)x));
+
+                    // add map to bytes
+                    foreach (var m in fd.map)
+                    {
+                        bytes.AddRange(BitConverter.GetBytes(m).Select(x => (sbyte)x));
+                    }
+                }
+
+                _ldisk.SetBlock(new Block(bytes.ToArray()), i + 1);
+            }
+
+            // create file and override if exists
+            var fileStream = new FileStream(filename, FileMode.Create);
+            try
+            {
+                for (var i = 0; i < 64; i++)
+                {
+                    var block = _ldisk.ReadBlock(i);
+                    fileStream.Write((byte[])(Array)block.data, 0, block.data.Length);
+                }
+            }
+            finally
+            {
+                fileStream.Close();
+            }
         }
     }
 }

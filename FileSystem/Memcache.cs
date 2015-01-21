@@ -14,14 +14,14 @@ namespace FileSystem
     class Memcache
     {
         private Bitmap _bitmap;
-        private FileDescriptor[] _fileDescriptors;
+        private FileDescriptor[] _fileDescriptors = new FileDescriptor[24];
 
         public Memcache(Block[] ldisk)
         {
             _bitmap = new Bitmap(ldisk[0]);
 
             // initialze the file descriptors
-            _fileDescriptors = InitializeDescriptors(new []
+            InitializeDescriptors(new []
             {
                 ldisk[1], ldisk[2], ldisk[3], ldisk[4], ldisk[5], ldisk[6]
             });
@@ -57,17 +57,6 @@ namespace FileSystem
             }
 
             return -1;
-        }
-
-
-        /// <summary>
-        /// Gets the an descriptor map of active blocks
-        /// </summary>
-        /// <param name="descriptorNumber">The descriptor number.</param>
-        /// <returns></returns>
-        public List<int> GetDescriptorMap(int descriptorNumber)
-        {
-            return _fileDescriptors[descriptorNumber].map.Where(x => x != -1).ToList();
         }
 
         /// <summary>
@@ -108,6 +97,33 @@ namespace FileSystem
         }
 
         /// <summary>
+        /// Gets the bit map in block form. Only used for saving the bitmap to the ldisk.
+        /// </summary>
+        /// <returns></returns>
+        public Block GetBitMap()
+        {
+            var block = new Block();
+            var counter = 0;
+
+            // iterate over the 8 slots that the bitmap takes
+            for (var i = 0; i < 8; i++)
+            {
+                var tempByte = new sbyte();
+                // iterate over each bit in a byte
+                for (var j = 0; j < 8; j++)
+                {
+                    if (_bitmap.GetBit((i*8) + j) != 0)
+                        tempByte |= (sbyte)(1 << j);
+                    counter++;
+                }
+
+                block.data[i] = tempByte;
+            }
+
+            return block;
+        }
+
+        /// <summary>
         /// Sets the block to 1 in the bitmap
         /// </summary>
         /// <param name="index">The index.</param>
@@ -136,22 +152,12 @@ namespace FileSystem
         }
 
         /// <summary>
-        /// Get the length of the descriptor.
-        /// </summary>
-        /// <param name="descriptorNum">The descriptor number.</param>
-        public int GetDescriptorLength(int descriptorNum)
-        {
-            return _fileDescriptors[descriptorNum].length;
-        }
-
-        /// <summary>
         /// Initializes the descriptors.
         /// </summary>
         /// <param name="blocks">The blocks.</param>
         /// <returns></returns>
-        public FileDescriptor[] InitializeDescriptors(Block[] blocks)
+        public void InitializeDescriptors(Block[] blocks)
         {
-            var filedescriptors = new FileDescriptor[24];
             var index = 0;
 
             foreach (var b in blocks)
@@ -165,50 +171,48 @@ namespace FileSystem
 
                     var bytes = new[]
                     {
-                        block[(i * 4)],
-                        block[1 + (i * 4)],
-                        block[2 + (i * 4)],
-                        block[3 + (i * 4)]
+                        block[(i * 16)],
+                        block[1 + (i * 16)],
+                        block[2 + (i * 16)],
+                        block[3 + (i * 16)]
                     };
 
                     fd.length = BitConverter.ToInt32((byte[])(Array)bytes, 0);
 
                     bytes = new[]
                     {
-                        block[4 + (i * 4)],
-                        block[5 + (i * 4)],
-                        block[6 + (i * 4)],
-                        block[7 + (i * 4)]
+                        block[4 + (i * 16)],
+                        block[5 + (i * 16)],
+                        block[6 + (i * 16)],
+                        block[7 + (i * 16)]
                     };
 
                     fd.map[0] = BitConverter.ToInt32((byte[])(Array)bytes, 0);
 
                     bytes = new[]
                     {
-                        block[8 + (i * 4)],
-                        block[9 + (i * 4)],
-                        block[10 + (i * 4)],
-                        block[11 + (i * 4)]
+                        block[8 + (i * 16)],
+                        block[9 + (i * 16)],
+                        block[10 + (i * 16)],
+                        block[11 + (i * 16)]
                     };
 
                     fd.map[1] = BitConverter.ToInt32((byte[])(Array)bytes, 0);
 
                     bytes = new[]
                     {
-                        block[12 + (i * 4)],
-                        block[13 + (i * 4)],
-                        block[14 + (i * 4)],
-                        block[15 + (i * 4)]
+                        block[12 + (i * 16)],
+                        block[13 + (i * 16)],
+                        block[14 + (i * 16)],
+                        block[15 + (i * 16)]
                     };
 
                     fd.map[2] = BitConverter.ToInt32((byte[])(Array)bytes, 0);
 
-                    filedescriptors[index] = fd;
+                    _fileDescriptors[index] = fd;
                     index++;
                 }
             }
-
-            return filedescriptors;
         }
     }
 }

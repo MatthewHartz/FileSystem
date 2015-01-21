@@ -19,9 +19,14 @@ namespace FileSystem
             get { return _instance ?? (_instance = new Ldisk()); }
         }
 
-        public Ldisk(Block[] blocks)
+        public Ldisk(sbyte[][] blocks)
         {
-            _blocks = blocks;
+            _blocks = new Block[64];
+
+            for (int i = 0; i < blocks.Length; i++)
+            {
+                _blocks[i] = new Block(blocks[i]);
+            }
         }
 
         public Ldisk()

@@ -29,45 +29,57 @@ namespace FileSystem
                     case "cr":
                         try
                         {
-                            if (fileSystem.Create(tokens[1] + "\0"))
-                                Console.WriteLine(tokens[1] + " created");                         
+                            fileSystem.Create(tokens[1] + "\0");
+                            Console.WriteLine(tokens[1] + " created");
                         }
-                        catch (Exception e) { }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Error: {0}", e.Message);
+                        }
                         break;
                     case "de":
                         try
                         {
-                            if (fileSystem.Destroy(tokens[1] + "\0"))
-                                Console.WriteLine(tokens[1] + " destroyed");
+                            fileSystem.Destroy(tokens[1] + "\0");
+                            Console.WriteLine(tokens[1] + " destroyed");
                         }
-                        catch (Exception e) { }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Error: {0}", e.Message);
+                        }
                         break;
                     case "op":
-                        handle = fileSystem.Open(tokens[1] + "\0");
-                        if (handle != -1)
+                        try
                         {
+                            handle = fileSystem.Open(tokens[1] + "\0");
                             Console.WriteLine("{0} opened {1}", tokens[1], handle);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Error: {0}", e.Message);
                         }
                         break;
                     case "cl":
                         try
                         {
-                            fileSystem.Close(Convert.ToInt32(tokens[1]));
+                            handle = fileSystem.Close(Convert.ToInt32(tokens[1]));
+                            Console.WriteLine("{0} closed {1}", handle);
                         }
-                        catch (FormatException e)
+                        catch (Exception e)
                         {
-                            Console.WriteLine("Parameter is not a valid integer");
+                            Console.WriteLine("Error: {0}", e.Message);
                         }
                         
                         break;
                     case "rd":
                         try
                         {
-                            fileSystem.Read(Convert.ToInt32(tokens[1]), Convert.ToInt32(tokens[2]));
+                            var bytes = fileSystem.Read(Convert.ToInt32(tokens[1]), Convert.ToInt32(tokens[2]));
+                            Console.WriteLine(Encoding.UTF8.GetString((byte[])(Array)bytes));
                         }
-                        catch (FormatException e)
+                        catch (Exception e)
                         {
-                            Console.WriteLine("Invalid read call: rd <index> <count>");
+                            Console.WriteLine("Error: {0}", e.Message);
                         }
                         
                         break;
@@ -77,9 +89,9 @@ namespace FileSystem
                             var bytesWritten = fileSystem.Write(Convert.ToInt32(tokens[1]), Convert.ToChar(tokens[2]), Convert.ToInt32(tokens[3]));
                             Console.WriteLine("{0} bytes written", bytesWritten);
                         }
-                        catch (FormatException e)
+                        catch (Exception e)
                         {
-                            Console.WriteLine("Invalid read call: rd <index> <char> <count>");
+                            Console.WriteLine("Error: {0}", e.Message);
                         }
                         break;
                     case "sk":
@@ -90,39 +102,53 @@ namespace FileSystem
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error seeking");
+                            Console.WriteLine("Error: {0}", e.Message);
                         }
                         break;
                     case "dr":
-                        var files = fileSystem.Directories();
-
                         try
                         {
+                            var files = fileSystem.Directories();
                             Console.WriteLine(files.Aggregate((i, j) => i + ' ' + j));
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("No files exist");
+                            Console.WriteLine("Error: {0}", e.Message);
                         }
                         break;
                     case "in":
-                        if (tokens.Count() == 2)
+                        try
                         {
-                            fileSystem.Init(tokens[1]);
+                            if (tokens.Count() == 2)
+                            {
+                                fileSystem.Init(tokens[1]);
+                                Console.WriteLine("Disk restored");
+                            }
+                            else if (tokens.Count() == 1)
+                            {
+                                fileSystem.Init(null);
+                                Console.WriteLine("Disk initialized");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Error: Invalid init call - in <optional filename>");
+                            }
                         }
-                        else if (tokens.Count() == 1)
+                        catch (Exception e)
                         {
-                            fileSystem.Init(null);
-                        }
-                        else
-                        {
-                            Console.WriteLine("Invalid init call: in <optional filename>");
+                            Console.WriteLine("Error: {0}", e.Message);
                         }
                         break;
                     case "sv":
-                        if (fileSystem.Save(tokens[1]))
+                        try
                         {
+                            fileSystem.Save(tokens[1]);
                             Console.WriteLine("Disk saved");
+                            
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine("Error: {0}", e.Message);
                         }
                         break;
                     default:

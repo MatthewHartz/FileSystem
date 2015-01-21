@@ -39,11 +39,6 @@ namespace FileSystem
             _files[index].position = pos;
         }
 
-        public void UpdateFile(int index, OftFile file)
-        {
-            _files[index] = file;
-        }
-
         public void CloseFile(int index)
         {
             _files[index] = new OftFile();

@@ -42,15 +42,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FileDescriptor.cs" />
-    <Compile Include="FileDirectory.cs" />
-    <Compile Include="OLDBitmap.cs" />
     <Compile Include="Bitmap.cs" />
     <Compile Include="Block.cs" />
     <Compile Include="Driver.cs" />
-    <Compile Include="OLDFileDescriptorData.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="Ldisk.cs" />
-    <Compile Include="OLDMemcache.cs" />
     <Compile Include="Memcache.cs" />
     <Compile Include="OpenFileTable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
