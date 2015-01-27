@@ -402,6 +402,7 @@ namespace FileSystem
             {
                 oftFile.block.data[oftFile.position % MaxBlockLength] = (sbyte)character;
                 oftFile.position++;
+                bytesWritten++;
 
                 // if exhausted the whole block
                 if (oftFile.position % MaxBlockLength == 0)
@@ -434,10 +435,8 @@ namespace FileSystem
                         var newBlock = _memcache.GetOpenBlock();
                         _memcache.SetBlockToDescriptor(index, newBlock);
                         oftFile.block = _ldisk.ReadBlock(fd.map[blockIndex]);
-                    }
-
+                   }
                 }
-                bytesWritten++;
             }
 
             fd.length += bytesWritten;
@@ -466,6 +465,14 @@ namespace FileSystem
                 throw new Exception("Invalid OFT index");
             }
 
+            // Get descriptor from OFTfile
+            var descriptor = _memcache.GetFileDescriptorByIndex(oft.index);
+
+            if (descriptor.length < pos)
+            {
+                throw new Exception("Invalid seek position");
+            }
+
             var newBlock = pos/64;
             var oldBlock = oft.position/64;
 
@@ -476,9 +483,6 @@ namespace FileSystem
             }
             else
             {
-                // Get descriptor from OFTfile
-                var descriptor = _memcache.GetFileDescriptorByIndex(oft.index);
-
                 // write buffer to disk
                 _ldisk.SetBlock(oft.block, descriptor.map[oldBlock]);
 

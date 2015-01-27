@@ -15,14 +15,15 @@ namespace FileSystem
         static void Main(string[] args)
         {
             var fileSystem = FileSystem.Instance;
+            var sb = new StringBuilder(); // Will contain file output
+            var stream = new StreamReader("C:\\input.txt");
+            String line;
 
-            var userEntry = "";
             int handle;
 
-            while (true)
+            while ((line = stream.ReadLine()) != null)
             {
-                userEntry = Console.ReadLine();               
-                var tokens = userEntry.Split(' ');
+                var tokens = line.Split(' ');
 
                 switch (tokens[0].ToLower())
                 {
@@ -30,44 +31,44 @@ namespace FileSystem
                         try
                         {
                             fileSystem.Create(tokens[1] + "\0");
-                            Console.WriteLine(tokens[1] + " created");
+                            sb.AppendLine(tokens[1] + " created\n");
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         break;
                     case "de":
                         try
                         {
                             fileSystem.Destroy(tokens[1] + "\0");
-                            Console.WriteLine(tokens[1] + " destroyed");
+                            sb.AppendLine(tokens[1] + " destroyed\n");
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         break;
                     case "op":
                         try
                         {
                             handle = fileSystem.Open(tokens[1] + "\0");
-                            Console.WriteLine("{0} opened {1}", tokens[1], handle);
+                            sb.AppendLine(String.Format("{0} opened {1}\n", tokens[1], handle));
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         break;
                     case "cl":
                         try
                         {
                             handle = fileSystem.Close(Convert.ToInt32(tokens[1]));
-                            Console.WriteLine("{0} closed {1}", handle);
+                            sb.AppendLine(String.Format("{0} closed\n", handle));
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         
                         break;
@@ -75,11 +76,11 @@ namespace FileSystem
                         try
                         {
                             var bytes = fileSystem.Read(Convert.ToInt32(tokens[1]), Convert.ToInt32(tokens[2]));
-                            Console.WriteLine(Encoding.UTF8.GetString((byte[])(Array)bytes));
+                            sb.AppendLine(Encoding.UTF8.GetString((byte[])(Array)bytes) + "\n");
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         
                         break;
@@ -87,33 +88,33 @@ namespace FileSystem
                         try
                         {
                             var bytesWritten = fileSystem.Write(Convert.ToInt32(tokens[1]), Convert.ToChar(tokens[2]), Convert.ToInt32(tokens[3]));
-                            Console.WriteLine("{0} bytes written", bytesWritten);
+                            sb.AppendLine(String.Format("{0} bytes written\n", bytesWritten));
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         break;
                     case "sk":
                         try
                         {
                             fileSystem.Lseek(Convert.ToInt32(tokens[1]), Convert.ToInt32(tokens[2]));
-                            Console.WriteLine("Position is " + Convert.ToInt32(tokens[2]));
+                            sb.AppendLine("position is " + Convert.ToInt32(tokens[2]) + "\n");
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         break;
                     case "dr":
                         try
                         {
                             var files = fileSystem.Directories();
-                            Console.WriteLine(files.Aggregate((i, j) => i + ' ' + j));
+                            sb.AppendLine(files.Aggregate((i, j) => i + ' ' + j) + "\n");
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         break;
                     case "in":
@@ -122,40 +123,47 @@ namespace FileSystem
                             if (tokens.Count() == 2)
                             {
                                 fileSystem.Init(tokens[1]);
-                                Console.WriteLine("Disk restored");
+                                sb.AppendLine("disk restored\n");
                             }
                             else if (tokens.Count() == 1)
                             {
                                 fileSystem.Init(null);
-                                Console.WriteLine("Disk initialized");
+
+                                sb.AppendLine("disk initialized\n");
                             }
                             else
                             {
-                                Console.WriteLine("Error: Invalid init call - in <optional filename>");
+                                sb.AppendLine("error: Invalid init call - in <optional filename>\n");
                             }
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         break;
                     case "sv":
                         try
                         {
                             fileSystem.Save(tokens[1]);
-                            Console.WriteLine("Disk saved");
+                            sb.AppendLine("disk saved\n");
                             
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine("Error: {0}", e.Message);
+                            sb.AppendLine(String.Format("error: {0}\n", e.Message));
                         }
                         break;
+                    case "":
+                        sb.AppendLine();
+                        break;
                     default:
-                        Console.WriteLine("Error: invalid operation");
+                        sb.AppendLine("error: invalid operation\n");
                         break;
                 }
             } 
+
+            stream.Close();
+            File.WriteAllText("C:\\output.txt", sb.ToString());
         }
     }
 }
