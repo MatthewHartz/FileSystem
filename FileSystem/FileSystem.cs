@@ -173,12 +173,29 @@ namespace FileSystem
                 var oldPos = oftFile.position;
 
                 // Get name and descriptor
-                var name = Encoding.UTF8.GetString((byte[])(Array)Read(DirectoryFileDescriptor, 4), 0, 4).Trim(); // remove the padding when allocating
+                String name;
+                try
+                {
+                    name = Encoding.UTF8.GetString((byte[]) (Array) Read(DirectoryFileDescriptor, 4), 0, 4).Trim();
+                        // remove the padding when allocating
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("File not found");
+                }
+                
                 var descriptor = BitConverter.ToInt32((byte[])(Array)Read(DirectoryFileDescriptor, 4), 0);
 
                 if (deleteName == name)
                 {
                     var fd = _memcache.GetFileDescriptorByIndex(descriptor);
+
+                    // close file if file exists in OFT
+                    var oftPos = 0;
+                    if ((oftPos = _oft.GetFileIndexFromDescriptor(descriptor)) != -1)
+                    {
+                        Close(oftPos);
+                    }
                     Lseek(0, oldPos);
 
                     sbyte emptySbyte = -1;
@@ -234,7 +251,16 @@ namespace FileSystem
             while (oftFile.position != MaxBlockLength * 3)
             {
                 // Get name and descriptor
-                var name = Encoding.UTF8.GetString((byte[])(Array)Read(DirectoryFileDescriptor, 4), 0, 4).Trim(); // remove the padding when allocating
+                String name = "";
+                try
+                {
+                    name = Encoding.UTF8.GetString((byte[])(Array)Read(DirectoryFileDescriptor, 4), 0, 4).Trim(); // remove the padding when allocating
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("File does not exist.");
+                }
+
                 var descriptor = BitConverter.ToInt32((byte[])(Array)Read(DirectoryFileDescriptor, 4), 0);
 
                 if (openName == name)
@@ -293,10 +319,18 @@ namespace FileSystem
             var fd = _memcache.GetFileDescriptorByIndex(oftFile.index);
 
             // write buffer to disk
-            _ldisk.SetBlock(oftFile.block, fd.map[oftFile.position / 64]);
+            if (oftFile.position == MaxBlockLength*3)
+            {
+                _ldisk.SetBlock(oftFile.block, fd.map[2]);
+            }
+            else
+            {
+                _ldisk.SetBlock(oftFile.block, fd.map[oftFile.position / 64]);
+            }
+            
 
             // update file length in descriptor
-            fd.length = 0;
+            //fd.length = 0;
 
 
             // free OFT entry
@@ -347,6 +381,11 @@ namespace FileSystem
 
                 bytes.Add(oftFile.block.data[oftFile.position % 64]);
                 oftFile.position++;
+
+                if (oftFile.position == MaxBlockLength * 3)
+                {
+                    return bytes.ToArray();
+                }
 
                 // if exhausted the whole block
                 if (oftFile.position % MaxBlockLength == 0)
@@ -480,6 +519,18 @@ namespace FileSystem
             if (oldBlock == newBlock)
             {
                 oft.position = pos;
+            } 
+            // If you are currently past the maximum position (position 192)
+            else if (oft.position == MaxBlockLength * 3)
+            {
+                // write buffer to disk
+                _ldisk.SetBlock(oft.block, descriptor.map[oldBlock - 1]);
+
+                // read the new block
+                oft.block = _ldisk.ReadBlock(descriptor.map[newBlock]);
+
+                // Set the current position to new position
+                oft.position = pos;
             }
             else
             {
@@ -540,7 +591,7 @@ namespace FileSystem
         /// <param name="filename">The filename.</param>
         public bool Init(string filename)
         {
-            if (String.IsNullOrEmpty(filename))
+           if (String.IsNullOrEmpty(filename) || !File.Exists(filename))
             {
                 _ldisk = new Ldisk();
 

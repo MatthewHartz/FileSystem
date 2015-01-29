@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -34,6 +35,11 @@ namespace FileSystem
             }
         }
 
+        public int GetFileIndexFromDescriptor(int index)
+        {
+            return Array.FindIndex(_files, x => x.index == index);
+        }
+
         public void SetFilePosition(int index, int pos)
         {
             _files[index].position = pos;
@@ -41,7 +47,7 @@ namespace FileSystem
 
         public void CloseFile(int index)
         {
-            _files[index] = new OftFile();
+            _files[index] = null;
         }
 
         public void OpenFile(int index, Block block, int pos, int fd)
