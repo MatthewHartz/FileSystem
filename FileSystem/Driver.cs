@@ -163,7 +163,7 @@ namespace FileSystem
             } 
 
             stream.Close();
-            File.WriteAllText("C:\\output.txt", sb.ToString());
+            File.WriteAllText("C:\\87401675.txt", sb.ToString());
         }
     }
 }
