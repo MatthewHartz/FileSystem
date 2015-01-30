@@ -194,7 +194,7 @@ namespace FileSystem
                     var oftPos = 0;
                     if ((oftPos = _oft.GetFileIndexFromDescriptor(descriptor)) != -1)
                     {
-                        Close(oftPos);
+                        throw new Exception("Cannot destroy open file");
                     }
                     Lseek(0, oldPos);
 
@@ -478,7 +478,11 @@ namespace FileSystem
                 }
             }
 
-            fd.length += bytesWritten;
+            //fd.length += bytesWritten;
+            if (oftFile.position > fd.length)
+            {
+                fd.length = oftFile.position;
+            }
             return bytesWritten;
         }
 

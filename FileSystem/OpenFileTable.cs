@@ -37,7 +37,18 @@ namespace FileSystem
 
         public int GetFileIndexFromDescriptor(int index)
         {
-            return Array.FindIndex(_files, x => x.index == index);
+            var i = 0;
+
+            try
+            {
+                i = Array.FindIndex(_files, x => x.index == index);
+            }
+            catch (Exception e)
+            {
+                i = -1;
+            }
+
+            return i;
         }
 
         public void SetFilePosition(int index, int pos)
